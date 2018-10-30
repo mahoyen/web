@@ -36,7 +36,7 @@ class CheckInView(View):
 
 
 class ShowSkillsView(TemplateView):
-    template_name = 'checkin/skills.html'
+    template_name = 'checkin/skill_feed.html'
     expiry_time = 3600 * 3
 
     def is_checkin_expired(self, profile):
@@ -46,6 +46,8 @@ class ShowSkillsView(TemplateView):
         if self.is_checkin_expired(profile):
             profile.on_make = False
             profile.save()
+            return True
+        return False
 
     def get_context_data(self, **kwargs):
         """ Creates dict with skill titles as keys and
@@ -55,7 +57,9 @@ class ShowSkillsView(TemplateView):
         skill_dict = {}
 
         for profile in Profile.objects.filter(on_make=True):
-            self.check_out_expired(profile)
+            if self.check_out_expired(profile):
+                continue
+
             for userskill in profile.userskill_set.all():
                 skill = userskill.skill
 
