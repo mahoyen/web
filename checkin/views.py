@@ -63,7 +63,7 @@ class ShowSkillsView(TemplateView):
             for userskill in profile.userskill_set.all():
                 skill = userskill.skill
 
-                if (skill not in skill_dict or skill.skill_level > skill_dict[skill][0]) \
+                if (skill not in skill_dict or userskill.skill_level > skill_dict[skill][0]) \
                         and not self.is_checkin_expired(profile):
                     skill_dict[skill] = (userskill.skill_level, profile.last_checkin)
 
