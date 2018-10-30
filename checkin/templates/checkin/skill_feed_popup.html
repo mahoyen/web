@@ -1,0 +1,13 @@
+{% load checkin_tags %}
+
+<div class='content'>
+    <div class='skill-text'>{{ skill|locale_title:request.LANGUAGE_CODE }}</div>
+    <div class='ui star rating skill-lvl' data-rating='{{ leveltime.0 }}'
+         data-max-rating='3'></div>
+    <div class='date'>{{ leveltime.1|timesince }}</div>
+</div>
+
+<script>
+    $('.ui.rating').rating();
+    $('.rating.skill-lvl').rating('disable');
+</script>

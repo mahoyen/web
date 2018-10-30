@@ -5,9 +5,54 @@
 .skill-lvl {
     margin-top: auto;
     margin-bottom: auto;
+    margin-left: -2px;
 }
 
 .skill-text {
-    display: inline-block;
+    /*display: inline-block;*/
     min-width: 15%;
+    font-size: 15px;
+}
+
+.skill-image {
+    position: relative;
+}
+
+.in-line {
+    display: inline-block !important;
+}
+
+.left.pointing.label {
+    height: 64px;
+}
+
+.centering {
+    margin: auto;
+    width: fit-content;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    white-space: nowrap;
+
+}
+
+.inline.field.centering::-webkit-scrollbar{
+  display: none;
+}
+
+.my-segment {
+    background: #0C426A!important;
+    width: 100%!important;
+    max-height: 96px;
+    /*overflow-x: scroll!important;*/
+}
+
+.placeholder-skill-image {
+    background-color: white!important;
+}
+
+.label-container {
+    top: 0;
+    left: 100%;
+    position: absolute;
+    z-index: 100;
 }
