@@ -35,43 +35,43 @@ class CheckInView(View):
         return HttpResponse(status=401)
 
 
-class ShowSkillsView(TemplateView):
-    template_name = 'checkin/skill_feed.html'
-    expiry_time = 3600 * 3
-
-    def is_checkin_expired(self, profile):
-        return (timezone.now() - profile.last_checkin).total_seconds() >= self.expiry_time
-
-    def check_out_expired(self, profile):
-        if self.is_checkin_expired(profile):
-            profile.on_make = False
-            profile.save()
-            return True
-        return False
-
-    def get_context_data(self, **kwargs):
-        """ Creates dict with skill titles as keys and
-         the highest corresponding skill level as its pair value (quick fix) to show on website """
-        # skill_dict = UserSkill.objects.filter(profile__on_make=True).order_by("-skill_level")
-
-        skill_dict = {}
-
-        for profile in Profile.objects.filter(on_make=True):
-            if self.check_out_expired(profile):
-                continue
-
-            for userskill in profile.userskill_set.all():
-                skill = userskill.skill
-
-                if (skill not in skill_dict or userskill.skill_level > skill_dict[skill][0]) \
-                        and not self.is_checkin_expired(profile):
-                    skill_dict[skill] = (userskill.skill_level, profile.last_checkin)
-
-        context = super().get_context_data(**kwargs)
-        context.update({
-            'skill_dict': sorted(skill_dict.items(), key=lambda x: x[1][1], reverse=True),
-        })
-        return context
+# class ShowSkillsView(TemplateView):
+#     template_name = 'checkin/skill_feed.html'
+#     expiry_time = 3600 * 3
+#
+#     def is_checkin_expired(self, profile):
+#         return (timezone.now() - profile.last_checkin).total_seconds() >= self.expiry_time
+#
+#     def check_out_expired(self, profile):
+#         if self.is_checkin_expired(profile):
+#             profile.on_make = False
+#             profile.save()
+#             return True
+#         return False
+#
+#     def get_context_data(self, **kwargs):
+#         """ Creates dict with skill titles as keys and
+#          the highest corresponding skill level as its pair value (quick fix) to show on website (OUTDATED DESCRIPTION)"""
+#         # skill_dict = UserSkill.objects.filter(profile__on_make=True).order_by("-skill_level")
+#
+#         skill_dict = {}
+#
+#         for profile in Profile.objects.filter(on_make=True):
+#             if self.check_out_expired(profile):
+#                 continue
+#
+#             for userskill in profile.userskill_set.all():
+#                 skill = userskill.skill
+#
+#                 if (skill not in skill_dict or userskill.skill_level > skill_dict[skill][0]) \
+#                         and not self.is_checkin_expired(profile):
+#                     skill_dict[skill] = (userskill.skill_level, profile.last_checkin)
+#
+#         context = super().get_context_data(**kwargs)
+#         context.update({
+#             'skill_dict': sorted(skill_dict.items(), key=lambda x: x[1][1], reverse=True),
+#         })
+#         return context
 
 
 class ProfilePageView(TemplateView):

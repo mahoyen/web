@@ -2,11 +2,11 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from django.contrib.auth.decorators import login_required
 
-from checkin.views import CheckInView, ShowSkillsView, ProfilePageView, SuggestSkillView, RegisterProfileView, \
+from checkin.views import CheckInView, ProfilePageView, SuggestSkillView, RegisterProfileView, \
     VoteSuggestionView, RegisterCardView, EditProfilePictureView, DeleteSuggestionView
 
 urlpatterns = [
-    url(r'^$', ShowSkillsView.as_view()),
+    #url(r'^$', ShowSkillsView.as_view()),
     url(r'^profile/$', login_required(ProfilePageView.as_view()), name="profile"),
     url(r'^profile/edit/image$', login_required(EditProfilePictureView.as_view()), name="profile_picture"),
     url(r'^post/$', CheckInView.as_view()),

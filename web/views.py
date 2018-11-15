@@ -3,6 +3,7 @@ from django.views.generic import TemplateView
 from contentbox.models import ContentBox
 from groups.models import Committee
 from news.models import Article, TimePlace
+from checkin.utilities.skill_feed_context import get_skill_dict_context as get_skill_dict
 
 
 class IndexView(TemplateView):
@@ -10,9 +11,11 @@ class IndexView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
         context.update({
             'articles': Article.objects.published().filter(featured=True)[:4],
             'events': TimePlace.objects.future().filter(event__featured=True)[:4],
+            'skill_dict': get_skill_dict(),
         })
         return context
 

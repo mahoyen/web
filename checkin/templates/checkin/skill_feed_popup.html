@@ -1,10 +1,12 @@
 {% load checkin_tags %}
+{% load i18n %}
 
 <div class='content'>
-    <div class='skill-text'>{{ skill|locale_title:request.LANGUAGE_CODE }}</div>
-    <div class='ui star rating skill-lvl' data-rating='{{ leveltime.0 }}'
-         data-max-rating='3'></div>
-    <div class='date'>{{ leveltime.1|timesince }}</div>
+    <div>
+        <span class='skill-text'>{{ skill|locale_title:request.LANGUAGE_CODE }}</span>
+        <span class='ui star rating skill-lvl' data-rating='{{ leveltime.0 }}' data-max-rating='3'></span>
+    </div>
+    <div class='date'>{% trans "Checked in " %} {{ leveltime.1|timesince }} {% trans " ago" %}</div>
 </div>
 
 <script>
