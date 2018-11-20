@@ -20,7 +20,6 @@
     display: inline-block !important;
 }
 
-
 .centering {
     margin: auto;
     width: fit-content;
@@ -35,7 +34,6 @@
 }
 
 #my-segment {
-    /*TODO: Fix padding under skill images*/
     background: #0C426A !important;
     width: 100% !important;
     padding: 0.5rem;
@@ -60,4 +58,3 @@
     top: 8px;
     right: 16px;
 }
-
