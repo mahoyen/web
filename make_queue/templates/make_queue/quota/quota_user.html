@@ -18,6 +18,9 @@
             </div>
             <div class="meta">{{ quota.machine_type.name }}</div>
             <b>{% trans "Maximum number of reservations" %}:</b> {{ quota.number_of_reservations }}
+            {%  if quota.diminishing %}
+                <b>{% trans "Reservations left on this quota" %}:</b> {{ quota.get_number_of_reservations_left }}<br>
+            {% endif %}
             {% if quota.ignore_rules %}
                 <b>{% trans "Ignores rules" %}</b>
             {% endif %}
