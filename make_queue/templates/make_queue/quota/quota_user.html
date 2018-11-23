@@ -1,7 +1,9 @@
 {% load i18n %}
 
 {% for quota in user_quotas %}
-    <div class="ui card">
+    <div class="ui card {% if quota.get_number_of_reservations_left <= 0 %} make_hidden {% endif %}"
+         data-reservations-left="{{ quota.get_number_of_reservations_left }}"
+         data-is-diminishing="{{ quota.diminishing }}">
         <div class="content">
             <div class="header">
                 {% if quota.diminishing %}
@@ -18,7 +20,7 @@
             </div>
             <div class="meta">{{ quota.machine_type.name }}</div>
             <b>{% trans "Maximum number of reservations" %}:</b> {{ quota.number_of_reservations }}
-            {%  if quota.diminishing %}
+            {% if quota.diminishing %}
                 <b>{% trans "Reservations left on this quota" %}:</b> {{ quota.get_number_of_reservations_left }}<br>
             {% endif %}
             {% if quota.ignore_rules %}
@@ -27,7 +29,7 @@
         </div>
     </div>
 {% empty %}
-	<div class="text-centered">
-		<i>{% trans 'User has no personal quotas' %}</i>
-	</div>
+    <div class="text-centered">
+        <i>{% trans 'User has no personal quotas' %}</i>
+    </div>
 {% endfor %}
