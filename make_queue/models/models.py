@@ -88,7 +88,9 @@ class Quota(models.Model):
         return reservation_set.all().filter(end_time__gte=timezone.now())
 
     def get_number_of_reservations_left(self):
-        return self.number_of_reservations - Reservation.objects.filter(quota=self).count()
+        if self.diminishing:
+            return self.number_of_reservations - Reservation.objects.filter(quota=self).count()
+        return self.number_of_reservations - Reservation.objects.filter(quota=self, end_time__gte=timezone.now()).count()
 
     def can_make_more_reservations(self, user):
         return self.number_of_reservations != self.get_active_reservations(user).count()

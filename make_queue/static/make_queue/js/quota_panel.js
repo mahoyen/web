@@ -11,9 +11,8 @@ $('#user').parent().dropdown({
 
 $("#hide_used_quotas").checkbox({
     onChange: function () {
-        $(".card").filter(function () {
-            console.log($(this).data("reservations-left"))
-            return !($(this).data("is-diminishing") === "True") || parseInt($(this).data("reservations-left")) <= 0;
+        $(".quota_card").filter(function () {
+            return parseInt($(this).data("reservations-left")) <= 0;
         }).toggleClass("make_hidden", $(this).is(":checked"))
     }
 });

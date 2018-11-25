@@ -1,9 +1,8 @@
 {% load i18n %}
 
 {% for quota in user_quotas %}
-    <div class="ui card {% if quota.get_number_of_reservations_left <= 0 %} make_hidden {% endif %}"
-         data-reservations-left="{{ quota.get_number_of_reservations_left }}"
-         data-is-diminishing="{{ quota.diminishing }}">
+    <div class="ui card quota_card {% if quota.get_number_of_reservations_left <= 0 %} make_hidden {% endif %}"
+         data-reservations-left="{{ quota.get_number_of_reservations_left }}">
         <div class="content">
             <div class="header">
                 {% if quota.diminishing %}
