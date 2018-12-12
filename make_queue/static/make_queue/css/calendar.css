@@ -1,71 +1,62 @@
-.make_reservation_calendar_time_table_event {
-    background-color: #21BA45;
-    border-top: 1px solid #1B8F3A;
-    border-bottom: 1px solid #1B8F3A;
+.reservation {
+    position: absolute;
+    width: 100%;
 }
 
-.make_reservation_calendar_time_table_non_event {
+.reservation.user, .legend .box.user {
     background-color: #2185D0;
     border-top: 1px solid #1B629D;
     border-bottom: 1px solid #1B629D;
 }
 
-.make_reservation_calendar_time_table_my_non_event {
+.reservation.user.self, .legend .box.user.self {
     background-color: #F8C811;
     border-top: 1px solid #D7AB0F;
     border-bottom: 1px solid #D7AB0F;
 }
 
-.make_reservation_calendar_time_table_make {
+.reservation.make, .legend .box.make {
     background-color: #DCDDDE;
     border-top: 1px solid #BABBBC;
     border-bottom: 1px solid #BABBBC;
-    z-index: 200;
 }
 
-.make_reservation_calendar_time_table_event:hover {
+.reservation.event, .legend .box.event {
+    background-color: #21BA45;
+    border-top: 1px solid #1B8F3A;
+    border-bottom: 1px solid #1B8F3A;
+}
+
+.reservation.event:hover {
     cursor: pointer;
 }
 
-.make_reservation_calendar_legend_box {
+.legend .box {
     display: inline-block;
     width: 1em;
     height: 1em;
     margin-right: 5px;
 }
 
-.make_reservation_calendar_legend_item {
+.legend > .item {
     display: inline-block;
     padding-right: 0.5em;
 }
 
-.make_reservation_calendar_time_table_calendar_fill {
-    width: 100%;
-}
-
-.make_reservation_calendar_time_table_item {
-    position: absolute;
-    width: 100%;
-}
-
-.make_reservation_calendar_high_z_index {
-    z-index: 100;
-}
-
 @media screen and (max-width: 1000px) {
-    .make_reservation_calendar_long_month {
+    .month.full {
         display: none;
     }
 }
 
 @media screen and (min-width: 1000px) {
-    .make_reservation_calendar_short_month {
+    .month.compact {
         display: none;
     }
 }
 
 @media screen and (max-width: 600px) {
-    .make_reservation_calendar_legend {
+    .legend {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
     }
@@ -75,21 +66,24 @@
     position: absolute;
 }
 
-.title_large {
-    font-size: 1.2em;
+.title {
     text-align: center !important;
 }
 
-.title_medium {
-    font-size: 1.1em;
-    font-weight: normal;
-    text-align: center !important;;
+.title.large {
+    font-size: 1.2em;
 }
 
-.title_small {
+.title.medium {
+    font-size: 1.1em;
+}
+
+.title.small {
     font-size: 0.9em;
-    font-weight: normal;
-    text-align: center !important;;
+}
+
+.title.medium, .title.small {
+   font-weight: normal;
 }
 
 .day {
@@ -98,12 +92,22 @@
     position: relative;
 }
 
-.hour_indication_line {
+.indicator {
     width: 100%;
+}
+
+.indicator.hour {
     height: 12.5%;
     border-bottom: 1px solid lightgrey;
     z-index: 0;
     pointer-events: none;
+}
+
+.indicator.current {
+    height: 2px;
+    background-color: #FF0000;
+    position: absolute;
+    z-index: 300;
 }
 
 .time_selection {
@@ -172,14 +176,6 @@ td.wrapping {
 
 tr.wrapping {
     height: 100% !important;
-}
-
-.current_time_indicator {
-    width: 100%;
-    height: 2px;
-    background-color: #FF0000;
-    position: absolute;
-    z-index: 300;
 }
 
 @supports (-moz-appearance:none) {

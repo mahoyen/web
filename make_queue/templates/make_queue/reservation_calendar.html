@@ -8,39 +8,36 @@
     <link rel="stylesheet" href="{% static 'make_queue/css/calendar.css' %}">
 
     <div class="attached ui buttons">
-        <a class="ui labeled icon make_yellow button" id="prev_week_button"
-           {% if link_prev %}href="{{ link_prev }}"{% endif %}>
+        <a class="ui labeled icon make_yellow button" id="prev_week_button">
             <i class="left chevron icon"></i>
             {% trans "Previous" %}
         </a>
-        <a class="ui make_yellow button bordered"
-           id="now_button" {% if link_now %}href="{{ link_now }}"{% endif %}>
+        <a class="ui make_yellow button bordered" id="now_button">
             <i class="calendar icon"></i>
             {% trans "Today" %}
         </a>
-        <a class="ui right labeled icon make_yellow button" id="next_week_button"
-           {% if link_next %}href="{{ link_next }}"{% endif %}>
+        <a class="ui right labeled icon make_yellow button" id="next_week_button">
             <i class="right chevron icon"></i>
             {% trans "Next" %}
         </a>
     </div>
-    <table class="ui celled fixed very compact unstackable table">
+    <table class="ui celled fixed very compact unstackable table" id="calendar">
         <thead>
         <tr>
-            <th class="make_reservation_calendar_short_month title_large">
-                <div>{{ week_days.0.date|date:"b"|title }}</div>
-                <div class="title_small">{{ week_days.0.date|date:"W" }}</div>
+            <th class="month compact title large">
+                <div></div>
+                <div class="title small"></div>
             </th>
-            <th class="make_reservation_calendar_long_month title_large">
-                <div>{{ week_days.0.date|date:"F"|title }}</div>
-                <div class="title_small">
-                    {% trans "Week" %} {{ week_days.0.date|date:"W" }}
+            <th class="month full title large">
+                <div></div>
+                <div class="title small">
+                    {% trans "Week" %} <span></span>
                 </div>
             </th>
             {% for day in week_days %}
                 <th>
-                    <div class="title_large">{{ day.date|date:"D"|title }}</div>
-                    <div class="title_medium">{{ day.date|date:"j" }}</div>
+                    <div class="title large">{{ day.date|date:"D"|title }}</div>
+                    <div class="title medium"></div>
                 </th>
             {% endfor %}
         </tr>
@@ -56,60 +53,10 @@
             </td>
             {% for day in week_days %}
                 <td class="wrapping">
-                    <div class="day" data-date="{{ day.date|date:"Y-m-d" }}" data-machine-pk="{{ machine.pk }}"
-                         data-week-index="{{ day.date.weekday }}">
+                    <div class="day" data-date="{{ day.date|date:"Y-m-d" }}" data-week-index="{{ day.date.weekday }}">
                         {% numeric_range 0 7 as num_indication_lines %}
                         {% for line in num_indication_lines %}
-                            <div class="hour_indication_line"></div>
-                        {% endfor %}
-                        {% is_current_date day.date.date as should_include_current_time_indicator %}
-                        {% if should_include_current_time_indicator %}
-                            <div class="current_time_indicator" style="top: {% get_current_time_of_day %}%"></div>
-                        {% endif %}
-                        {% for reservation in day.reservations %}
-                            {% if reservation.length %}
-                                <div class="make_reservation_calendar_time_table_item
-                                            {% if reservation.reservation.special %}
-                                                make_reservation_calendar_time_table_make
-                                            {% elif reservation.reservation.event %}
-                                                make_reservation_calendar_time_table_event
-                                            {% else %}
-                                                {% if reservation.reservation.user == request.user %}
-                                                    make_reservation_calendar_time_table_my_non_event
-                                                {% else %}
-                                                    make_reservation_calendar_time_table_non_event
-                                                {% endif %}
-                                            {% endif %}"
-                                     style="top: {{ reservation.start_percentage }}%; height: {{ reservation.length }}%;"
-                                        {% if reservation.reservation.special %}
-                                     data-content="{{ reservation.reservation.special_text }}"
-                                        {% elif perms.make_queue.can_view_reservation_user and not reservation.reservation.special %}
-                                     data-html="<div class='header'>
-                                                    {% trans "Reservation" %}
-                                                </div>
-                                                <div>
-                                                    <b>{% trans "Name" %}:</b> {{ reservation.reservation.user.get_full_name }}
-                                                </div>
-                                                <div>
-                                                    <b>{% trans "Email" %}:</b> {{ reservation.reservation.user.email }}
-                                                </div>
-                                                <div>
-                                                    <b>{% trans "Time" %}:</b> {{ reservation.reservation.start_time|date:"D H:i"|title }} - {{ reservation.reservation.end_time|date:"D H:i"|title }}
-                                                </div>
-                                                {% if reservation.reservation.comment %}
-                                                    <div>
-                                                        <div>
-                                                            <b>{% trans "Comment" context "A comment" %}:</b>
-                                                        </div>
-                                                        <div>{{ reservation.reservation.comment }}</div>
-                                                    </div>
-                                                {% endif %}"
-                                        {% endif %}
-                                        {% if reservation.reservation.event %}
-                                     data-event-url="{% url 'event' pk=reservation.reservation.event.event.pk %}"
-                                        {% endif %}>
-                                </div>
-                            {% endif %}
+                            <div class="indicator hour"></div>
                         {% endfor %}
                     </div>
                 </td>
@@ -118,21 +65,21 @@
         <tfoot>
         <tr>
             <th colspan="8">
-                <div class="make_reservation_calendar_legend make_right_floated">
-                    <div class="make_reservation_calendar_legend_item">
-                        <div class="make_reservation_calendar_legend_box make_reservation_calendar_time_table_make"></div>
+                <div class="legend make_right_floated">
+                    <div class="item">
+                        <div class="box make"></div>
                         {% trans "MAKE NTNU" %}
                     </div>
-                    <div class="make_reservation_calendar_legend_item">
-                        <div class="make_reservation_calendar_legend_box make_reservation_calendar_time_table_non_event"></div>
+                    <div class="item">
+                        <div class="box user"></div>
                         {% trans "Other reservations" %}
                     </div>
-                    <div class="make_reservation_calendar_legend_item">
-                        <div class="make_reservation_calendar_legend_box make_reservation_calendar_time_table_event"></div>
+                    <div class="item">
+                        <div class="box event"></div>
                         {% trans "Events" %}
                     </div>
-                    <div class="make_reservation_calendar_legend_item">
-                        <div class="make_reservation_calendar_legend_box make_reservation_calendar_time_table_my_non_event"></div>
+                    <div class="item">
+                        <div class="box user self"></div>
                         {% trans "My reservations" %}
                     </div>
                 </div>
@@ -141,11 +88,12 @@
         </tfoot>
     </table>
 
-    <script>
-        {# The calendar is sometimes loaded through AJAX, as such the Javascript cannot be loaded asynchronously #}
-        $(".make_reservation_calendar_time_table_item").popup();
-    </script>
-    {% if can_make_reservations %}
-        {% include 'make_queue/js/calendar.html' %}
+    <script src="{% static "web/js/util.js" %}"></script>
+    <script src="{% static "make_queue/js/reservation_rules.js" %}"></script>
+    <script src="{% static "make_queue/js/calendar.js" %}"></script>
+    {% if machine.pk %}
+        <script>
+            new Calendar({{ machine.pk }}{% if "date" %}, new Date({{ date }}){% endif %});
+        </script>
     {% endif %}
 {% endlocalize %}

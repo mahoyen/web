@@ -62,5 +62,6 @@ urlpatterns = [
     path('json/', include(json_urlpatterns)),
     path('quota/', include(quota_url_patterns)),
     path('course/', include(course_url_patterns)),
+    path('api/reservations/', api.reservation.get_reservation_data, name="api_reservations"),
     re_path('^', reservation.machine.MachineView.as_view(), name="reservation_machines_overview")
 ]
