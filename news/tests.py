@@ -62,7 +62,11 @@ class ModelTestCase(TestCase):
         hidden_event = Event.objects.create(title='', hidden=True)
 
         not_published = self.create_time_place(event, 1, 1, False)
-        future = self.create_time_place(event, -1, 1, False)
+        not_started = self.create_time_place(event, -1, 1, False)
+        started = self.create_time_place(event, -1, 0, False)
+        started.end_date = (timezone.now() + timedelta(seconds=1)).date()
+        started.end_time = (timezone.now() + timedelta(seconds=1)).time()
+        started.save()
         past = self.create_time_place(event, -1, -1, False)
 
         self.create_time_place(hidden_event, -1, 1)
@@ -70,10 +74,14 @@ class ModelTestCase(TestCase):
         self.create_time_place(hidden_event, -1, 1, False)
         self.create_time_place(hidden_event, -1, -1, False)
 
-        self.assertEqual(TimePlace.objects.future().count(), 1)
-        self.assertEqual(TimePlace.objects.past().count(), 1)
-        self.assertEqual(TimePlace.objects.future().first(), future)
-        self.assertEqual(TimePlace.objects.past().first(), past)
+        self.assertEqual(TimePlace.objects.not_started().count(), 1)
+        self.assertEqual(TimePlace.objects.past().count(), 2)
+        self.assertEqual(TimePlace.objects.not_started().first(), not_started)
+        self.assertEqual(set(TimePlace.objects.past()), {past, started})
+        self.assertEqual(TimePlace.objects.future().count(), 2)
+        self.assertEqual(set(TimePlace.objects.future()), {not_started, started})
+        self.assertEqual(TimePlace.objects.published().count(), 3)
+        self.assertEqual(set(TimePlace.objects.published()), {past, started, not_started})
 
 
 class ViewTestCase(TestCase):

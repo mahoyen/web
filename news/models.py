@@ -17,16 +17,34 @@ class ArticleManager(models.Manager):
 
 class TimePlaceManager(models.Manager):
     def published(self):
+        """
+        Finds all TimePlace objects that are not hidden, and has been published
+        """
         return self.filter(hidden=False, event__hidden=False).filter(
             Q(pub_date=timezone.now().date(), pub_time__lt=timezone.now().time()) |
             Q(pub_date__lt=timezone.now().date()))
 
     def future(self):
+        """
+        Finds all published TimePlace objects that are not yet finished. They can however be started.
+        """
+        return self.published().filter(
+            Q(end_date=timezone.now().date(), end_time__gt=timezone.now().time()) |
+            Q(end_date__gt=timezone.now().date()) | Q(start_date__gt=timezone.now().date()) |
+            Q(start_date=timezone.now().date(), start_time__gt=timezone.now().time()))
+
+    def not_started(self):
+        """
+        Finds all published TimePlace objects that have not yet started.
+        """
         return self.published().filter(
             Q(start_date=timezone.now().date(), start_time__gt=timezone.now().time()) |
             Q(start_date__gt=timezone.now().date()))
 
     def past(self):
+        """
+        Finds all published TimePlace objects that have started
+        """
         return self.published().filter(
             Q(start_date=timezone.now().date(), start_time__lt=timezone.now().time()) |
             Q(start_date__lt=timezone.now().date()))
