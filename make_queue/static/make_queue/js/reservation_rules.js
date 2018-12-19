@@ -135,7 +135,7 @@ function modifyToFirstValid(rules, startTime, endTime, modificationDirection) {
         // If the period is still not valid, this means that we have to remove the rules one by one
         let period = getPeriodIn(rules, modificationDirection ? endTime : startTime, modificationDirection);
         if (modificationDirection) {
-            let currentOverlap = overlap(period.period[0], period.period[1], period.period[0], dateToWeekRep(endTime), 7) * 24;
+            let currentOverlap = (overlap(period.period[0], period.period[1], period.period[0], dateToWeekRep(endTime), 7) * 24).toPrecision(4);
             // Shrink the overlap until
             if (currentOverlap > period.max_inside) {
                 // If the overlap with the current time period is greater than the maximum allowed inside then
@@ -157,7 +157,7 @@ function modifyToFirstValid(rules, startTime, endTime, modificationDirection) {
                 ));
             }
         } else {
-            let currentOverlap = overlap(period.period[0], period.period[1], dateToWeekRep(startTime), period.period[1], 7) * 24;
+            let currentOverlap = (overlap(period.period[0], period.period[1], dateToWeekRep(startTime), period.period[1], 7) * 24).toPrecision(4);
             if (currentOverlap > period.max_inside) {
                 // If the overlap with the current time period is greater than the maximum allowed inside then
                 // shrink till it is equal to that.
