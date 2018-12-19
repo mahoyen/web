@@ -1,0 +1,69 @@
+<div class="ui two fields">
+    <div class="ui field">
+        <label>{{ widget.attrs.group_label }}</label>
+        <div class="ui fluid selection dropdown">
+            <input type="hidden" value="{% if widget.value %}{{ widget.group_value }}{% else %}default{% endif %}"
+                   id="{{ widget.attrs.id }}-group-select">
+            <div class="default text">
+                {{ widget.attrs.group_prompt }}
+            </div>
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                {% for group_name, group_choices, _ in widget.optgroups %}
+                    <div class="item" data-value="{{ group_name }}">
+                        {{ group_name }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="ui field">
+        <label>{{ widget.attrs.label }}</label>
+        <div class="ui fluid {% if not widget.value %}disabled{% endif %} selection dropdown">
+            <input type="hidden" value="{% if widget.value %}{{ widget.value|first }}{% else %}default{% endif %}"
+                   name="{{ widget.name }}" id="{{ widget.attrs.id }}">
+            <div class="default text">
+                {{ widget.attrs.prompt }}
+            </div>
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                {% for group_name, group_choices, _ in widget.optgroups %}
+                    {% for choice in group_choices %}
+                        <div class="item {% if group_name != widget.group_value %}make_hidden{% endif %}"
+                             data-value="{{ choice.value }}" data-group-value="{{ group_name }}">
+                            {{ choice.label }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $("#{{ widget.attrs.id }}").closest(".ui.dropdown").dropdown();
+
+        $("#{{ widget.attrs.id }}-group-select").closest(".ui.dropdown").dropdown({
+            onChange: function (value) {
+                $("#{{ widget.attrs.id }}")
+                    .closest(".field")
+                    .toggleClass("disabled", !value)
+                    .find(".ui.dropdown")
+                    .dropdown("clear")
+                    .find(".item")
+                    .each(function () {
+                        $(this).toggleClass("make_hidden", $(this).data("group-value") !== value)
+                    });
+            }
+        });
+
+        {% if widget.attrs.required %}
+            $("#{{ widget.attrs.id }}").closest("form").submit(function () {
+                let field = $("#{{ widget.attrs.id }}");
+                let groupField = $("#{{ widget.attrs.id }}-group-select");
+                groupField.closest(".field").toggleClass("error", groupField.val() === "");
+                field.closest(".field").toggleClass("error", field.val() === "");
+                return field.val() !== "";
+            });
+        {% endif %}
+    </script>
+</div>

@@ -44,6 +44,7 @@ class Reservation {
         let endDay = new Date(Math.min(weekEnd, this.endTime));
         let days = $("#calendar").find(".day");
 
+        // TODO: Fix issue with Sunday to Monday in Sunday week
         for (let day = startDay.getISO8601Day(); day <= endDay.getISO8601Day(); day++) {
             // The first day of the reservation starts late
             let startTime = 0;
@@ -99,11 +100,77 @@ class Reservation {
     }
 }
 
+class ReservationHandler {
+
+    constructor() {
+        this.clear();
+    }
+
+    clear() {
+        this._reservations = [];
+    }
+
+    set reservations(reservations) {
+        this.clear();
+        for (let reservation of reservations) {
+            this._reservations.push(new Reservation(new Date(reservation.start_time), new Date(reservation.end_time), reservation.popup, reservation.type))
+        }
+    }
+
+    get reservations() {
+        return this._reservations.slice()
+    }
+
+    isReserved(date) {
+        for (let reservation of this._reservations) {
+            if (reservation.startTime < date && reservation.endTime > date) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    nextReservation(date) {
+        let nextReservation = null;
+        for (let reservation of this._reservations) {
+            if (reservation.endTime <= date) continue;
+            if (nextReservation === null || nextReservation.startTime > reservation.startTime) {
+                nextReservation = reservation;
+            }
+        }
+        return nextReservation;
+    }
+
+    reservationsInPeriod(startDate, endDate) {
+        let reservations = [];
+        for (let reservation of this._reservations) {
+            if (reservation.startTime < endDate && reservation.endTime > startDate) {
+                reservations.push(reservation);
+            }
+        }
+        return reservations;
+    }
+
+    isFullPeriod(startDate, endDate) {
+        let reservations = this.reservationsInPeriod(startDate, endDate);
+        reservations.sort((a, b) => a.startTime - b.startTime);
+        let date = startDate;
+        for (let reservation of reservations) {
+            if (reservation.startTime <= new Date(date.valueOf() + 5 * 60 * 1000)) {
+                date = reservation.endTime;
+            }
+        }
+        return endDate - date <= 5 * 60 * 1000;
+    }
+
+}
+
 class Calendar {
 
     constructor(machine, displayDate = new Date()) {
         this.machine = machine;
-        this.date = displayDate.firstDayOfWeek();
+        this.date = displayDate;
+        this.reservationHandler = new ReservationHandler();
 
         // Setup actions
         let calendar = this;
@@ -122,7 +189,10 @@ class Calendar {
             calendar.update();
         });
 
-        this.update();
+        // Do not update calendar if machine or date has not been set
+        if (this.machine !== undefined && this.date !== undefined) {
+            this.update();
+        }
         new CalendarSelector(this);
 
         // Update the time indicator every minute
@@ -133,7 +203,12 @@ class Calendar {
         return this.ruleset;
     }
 
-    update() {
+    get canIgnoreRules() {
+        if (this.ignoreRules === undefined) return false;
+        return this.ignoreRules;
+    }
+
+    update(callback) {
         let calendar = this;
         $.ajax({
             url: "/reservation/api/reservations/",
@@ -148,18 +223,22 @@ class Calendar {
                 $("#calendar").find(".reservation").remove();
 
                 calendar.ruleset = response.rules;
+                calendar.ignoreRules = response.canIgnoreRules;
 
                 calendar.updateHeaders();
                 calendar.updateCurrentTime();
                 let weekStart = calendar.date.firstDayOfWeek();
                 let weekEnd = weekStart.cycleWeek(1);
 
-                for (let reservation of response.reservations) {
-                    let reservationObj = new Reservation(new Date(reservation.start_time), new Date(reservation.end_time), reservation.popup, reservation.type);
-                    reservationObj.setupElements(weekStart, weekEnd)
+                calendar.reservationHandler.reservations = response.reservations;
+                for (let reservation of calendar.reservationHandler.reservations) {
+                    reservation.setupElements(weekStart, weekEnd)
                 }
 
                 $(".reservation").popup();
+                if (callback !== undefined) {
+                    callback();
+                }
             },
             error: function (xhr) {
                 // TODO: Error handling and displaying to user
@@ -205,6 +284,24 @@ class Calendar {
         let date = new Date(this.date);
         date.setDate(date.getDate() + dayNumber);
         return date;
+    }
+
+    set machine(pk) {
+        this._machine = pk
+    }
+
+    get machine() {
+        return this._machine
+    }
+
+    set date(date) {
+        if (date !== undefined) {
+            this._date = date.firstDayOfWeek()
+        }
+    }
+
+    get date() {
+        return this._date
     }
 
 }

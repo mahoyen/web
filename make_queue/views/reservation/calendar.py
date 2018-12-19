@@ -93,7 +93,7 @@ class ReservationCalendarComponentView(TemplateView):
 
 class ReservationCalendarView(ReservationCalendarComponentView):
     """Main view for showing the reservation calendar for a machine"""
-    template_name = "make_queue/reservation_overview.html"
+    template_name = "make_queue/reservation_overview_machine.html"
 
     def get_context_data(self, year, week, machine):
         """

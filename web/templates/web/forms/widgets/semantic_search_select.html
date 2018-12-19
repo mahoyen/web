@@ -1,5 +1,5 @@
 <div class="ui search selection dropdown">
-    <input type="hidden" name="{{ widget.name }}" id="{{ widget.name }}"
+    <input type="hidden" name="{{ widget.name }}" id="{{ widget.attrs.id }}"
             {% for group_name, group_choices, group_index in widget.optgroups %}
                 {% for option in group_choices %}
                     {% if option.selected %}
@@ -23,7 +23,7 @@
     </div>
 </div>
 <script>
-    $("#{{ widget.name }}").parent().dropdown({
+    $("#{{ widget.attrs.id }}").parent().dropdown({
         fullTextSearch: true,
         forceSelection: {{ widget.attrs.force_selection|lower }}
     });

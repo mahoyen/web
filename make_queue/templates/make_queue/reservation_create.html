@@ -1,0 +1,17 @@
+{% extends "make_queue/reservation_edit.html" %}
+{% load i18n %}
+
+{% block form_title %}
+    {% trans "New reservation" %}
+{% endblock %}
+
+{% block submit_button %}
+    {% trans "Reserve" %}
+{% endblock %}
+
+{% block variable_initialization %}
+    let minDate = new Date();
+{% endblock %}
+
+{% block disable_machine_selection %}
+{% endblock %}

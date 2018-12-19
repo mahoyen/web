@@ -1,147 +1,96 @@
 from math import ceil
 
-from abc import ABCMeta
-from django.db.models import Q
-from django.shortcuts import render, redirect
+from django.core.exceptions import ValidationError
+from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import RedirectView, TemplateView, FormView
+from django.utils.translation import gettext_lazy as _
+from django.views.generic import RedirectView, FormView, CreateView, UpdateView
 
-from make_queue.fields import MachineTypeField
-from make_queue.forms import ReservationForm, FreeSlotForm
-from make_queue.models.models import Machine, Reservation
+from make_queue.forms import FreeSlotForm, ReservationForm
+from make_queue.models.models import Machine, Reservation, Quota
 from make_queue.templatetags.reservation_extra import calendar_url_reservation
 from make_queue.util.time import timedelta_to_hours
-from news.models import TimePlace
 
 
-class ReservationCreateOrChangeView(TemplateView):
-    """Base abstract class for the reservation create or change view"""
-    __metaclass__ = ABCMeta
-    template_name = "make_queue/make_reservation.html"
+class ReservationCreateView(CreateView):
+    form_class = ReservationForm
+    template_name = "make_queue/reservation_create.html"
 
-    def get_error_message(self, form, reservation):
-        """
-        Generates the correct error message for the given form
-        :param reservation: The reservation to generate an error message for
-        :param form: The form to generate an error message for
-        :return: The error message
-        """
-        if not reservation.is_within_allowed_period_for_reservation() and not (
-                reservation.special or reservation.event):
-            return "Reservasjoner kan bare lages {:} dager frem i tid".format(reservation.reservation_future_limit_days)
-        if self.request.user.has_perm("make_queue.can_create_event_reservation") and form.cleaned_data["event"]:
-            return "Tidspunktet eller eventen, er ikke lengre tilgjengelig"
-        return "Tidspunktet er ikke lengre tilgjengelig"
-
-    def validate_and_save(self, reservation, form):
-        """
-        Tries to validate and save the given reservation
-        :param reservation: The reservation to validate and save
-        :param form: The form used to create/change the reservation
-        :return: Either a redirect to the new/changed reservation in the calendar or an error message indicating why
-                    the reservation cannot be validated
-        """
-        if not reservation.validate():
-            context_data = self.get_context_data(reservation=reservation)
-            context_data["error"] = self.get_error_message(form, reservation)
-            return render(self.request, self.template_name, context_data)
-
-        reservation.save()
-        return redirect(calendar_url_reservation(reservation))
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update(user=self.request.user, machine=self.kwargs.pop("machine", 0))
+        return kwargs
 
     def get_context_data(self, **kwargs):
-        """
-        Creates the context data required for the make reservation template. If reservation is given as a keyword
-        argument, the view is made for that reservation
-        :param kwargs: The request arguments for creating the context data
-        :return: The context data needed for the template
-        """
-
-        # Always include a list of events and machines to populate the dropdown lists
-        context_data = {
-            "new_reservation": self.new_reservation, "events": list(TimePlace.objects.filter(
-                Q(end_date=timezone.now().date(), end_time__gt=timezone.now().time()) |
-                Q(end_date__gt=timezone.now().date()))),
-            "machine_types": [
-                {"literal": machine_type.name, "instances": Machine.objects.filter(machine_type=machine_type)}
-                for machine_type in MachineTypeField.possible_machine_types if
-                machine_type.can_user_use(self.request.user)
-            ],
-            "maximum_days_in_advance": Reservation.reservation_future_limit_days
-        }
-
-        # If we are given a reservation, populate the information relevant to that reservation
-        if "reservation" in kwargs:
-            reservation = kwargs["reservation"]
-            context_data["start_time"] = reservation.start_time
-            context_data["reservation_pk"] = reservation.pk
-            context_data["end_time"] = reservation.end_time
-            context_data["selected_machine"] = reservation.machine
-            context_data["event"] = reservation.event
-            context_data["special"] = reservation.special
-            context_data["special_text"] = reservation.special_text
-            context_data["comment"] = reservation.comment
-            context_data["can_change_start_time"] = reservation.can_change(self.request.user)
-        # Otherwise populate with default information given to the view
-        else:
-            context_data["selected_machine"] = kwargs["machine"]
-            if "start_time" in kwargs:
-                context_data["start_time"] = kwargs["start_time"]
-            context_data["can_change_start_time"] = True
-
+        context_data = super().get_context_data(**kwargs)
+        context_data.update({
+            "max_days_in_advance": Reservation.reservation_future_limit_days,
+        })
         return context_data
 
-    def dispatch(self, request, *args, **kwargs):
-        """
-        If the request is a post request use the handle_post method, otherwise use the default method of the template
-        view
-        :param request: The HTTP request
-        :return: HTTP response
-        """
-        if request.method == "POST":
-            return self.handle_post(request, **kwargs)
-        return super().dispatch(request, *args, **kwargs)
+    def form_valid(self, form):
+        # User is not included in form
+        form.instance.user = self.request.user
 
-    def handle_post(self, request, **kwargs):
-        """
-        Handles and validates update requests
-        :param request: The HTTP request
-        """
+        # Want to perform error checking to provide the user with some feedback
         try:
-            form = ReservationForm(request.POST)
-            if form.is_valid():
-                return self.form_valid(form, **kwargs)
-        except Exception:
-            pass
-        return self.get(request, **kwargs)
+            self.object = form.save()
+        except ValidationError:
+            # If the user waits for too long, it is possible to use the form to create a reservation in the past
+            if form.instance.start_time < timezone.now():
+                form.add_error(None, _("It is not possible to create a reservation starting in the past."))
+            # If the user tries to make a reservation when no Quota is available and free
+            elif not Quota.can_make_reservation(form.instance):
+                form.add_error(None, _("You have reached your maximum number of future reservations."))
+            # Catch all case
+            else:
+                form.add_error(None, _(
+                    "It was not possible to create the given reservation, as the time may already be reserved."))
+            return self.form_invalid(form)
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return calendar_url_reservation(self.object)
 
 
-class MakeReservationView(ReservationCreateOrChangeView):
-    """View for creating a new reservation"""
-    new_reservation = True
+class ReservationEditView(UpdateView):
+    model = Reservation
+    form_class = ReservationForm
+    template_name = "make_queue/reservation_edit.html"
 
-    def form_valid(self, form, **kwargs):
-        """
-        Creates a reservation from a valid ReservationForm
-        :param form: The valid reservation form
-        :return: HTTP response
-        """
-        reservation = Reservation(start_time=form.cleaned_data["start_time"],
-                                  end_time=form.cleaned_data["end_time"], user=self.request.user,
-                                  machine=form.cleaned_data["machine"], comment=form.cleaned_data["comment"])
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update(user=self.request.user)
+        return kwargs
 
-        if form.cleaned_data["event"]:
-            reservation.event = form.cleaned_data["event"]
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data(**kwargs)
+        context_data.update({
+            # Users should not be able to change the start time of the reservation after it has started
+            "disable_start_time": self.object.start_time < timezone.now(),
+            "max_days_in_advance": Reservation.reservation_future_limit_days,
+            "reservation": self.object.pk,
+        })
+        return context_data
 
-        if form.cleaned_data["special"]:
-            reservation.special = True
-            reservation.special_text = form.cleaned_data["special_text"]
+    def form_valid(self, form):
+        # Want to perform error checking to provide the user with some feedback
+        try:
+            self.object = form.save()
+        except ValidationError:
+            # This is the only major error that may occur on edit, without the user deliberately changing the JS or HTML
+            if form.instance.end_time < timezone.now():
+                form.add_error(None, _("It is not possible to set the end time of the reservation in the past."))
+            return self.form_invalid(form)
+        return HttpResponseRedirect(self.get_success_url())
 
-        return self.validate_and_save(reservation, form)
+    def get_success_url(self):
+        return calendar_url_reservation(self.object)
 
 
 class DeleteReservationView(RedirectView):
+    # TODO: Change to DeleteView
     """View for deleting a reservation (Cannot be DeleteView due to the abstract inheritance of reservations)"""
     http_method_names = ["post"]
 
@@ -170,45 +119,6 @@ class DeleteReservationView(RedirectView):
                 pass
 
         return super().dispatch(request, *args, **kwargs)
-
-
-class ChangeReservationView(ReservationCreateOrChangeView):
-    """View for changing a reservation (Cannot be UpdateView due to the abstract inheritance of reservations)"""
-    new_reservation = False
-
-    def dispatch(self, request, *args, **kwargs):
-        """
-        Redirects the user to it's reservation page if the given reservation cannot be changed
-        :param request: The HTTP request
-        """
-        # User must be able to change the given reservation
-        if not kwargs["reservation"].can_change(request.user) and not kwargs["reservation"].can_change_end_time(
-                request.user):
-            return redirect("my_reservations")
-        return super().dispatch(request, *args, **kwargs)
-
-    def form_valid(self, form, **kwargs):
-        """
-        Handles updating the reservation if the form is valid, otherwise render the form view with an error code
-        :param form: The valid form
-        :return HTTP Response
-        """
-        reservation = kwargs["reservation"]
-        # The user is not allowed to change the machine for a reservation
-        if reservation.machine != form.cleaned_data["machine"]:
-            return redirect("my_reservations")
-
-        reservation.comment = form.cleaned_data["comment"]
-
-        reservation.start_time = form.cleaned_data["start_time"]
-        reservation.end_time = form.cleaned_data["end_time"]
-        if reservation.event:
-            reservation.event = form.cleaned_data["event"]
-
-        if reservation.special:
-            reservation.special_text = form.cleaned_data["special_text"]
-
-        return self.validate_and_save(reservation, form)
 
 
 class MarkReservationAsDone(RedirectView):

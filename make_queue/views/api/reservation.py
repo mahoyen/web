@@ -8,23 +8,9 @@ from make_queue.util.time import year_and_week_to_monday
 
 def get_machine_data(request, machine, reservation=None):
     return JsonResponse({
-        "reservations": [{"start_date": c_reservation.start_time, "end_date": c_reservation.end_time} for c_reservation
+        "reservations": [wrap_reservation(c_reservation, request.user) for c_reservation
                          in Reservation.objects.filter(end_time__gte=timezone.now(), machine=machine)
                          if c_reservation != reservation],
-        "canIgnoreRules": any(quota.ignore_rules and quota.can_make_more_reservations(request.user) for quota in
-                              Quota.get_user_quotas(request.user, machine.machine_type)),
-        "rules": [
-            {
-                "periods": [
-                    [
-                        day + rule.start_time.hour / 24 + rule.start_time.minute / 1440,
-                        (day + rule.days_changed + rule.end_time.hour / 24 + rule.end_time.minute / 1440) % 7
-                    ]
-                    for day, _ in enumerate(bin(rule.start_days)[2:][::-1]) if _ == "1"
-                ],
-                "max_hours": rule.max_hours,
-                "max_hours_crossed": rule.max_inside_border_crossed,
-            } for rule in ReservationRule.objects.filter(machine_type=machine.machine_type)]
     })
 
 
@@ -63,6 +49,15 @@ def get_reservation_type(reservation, user):
     return "normal"
 
 
+def wrap_reservation(reservation, user):
+    return {
+        "start_time": reservation.start_time,
+        "end_time": reservation.end_time,
+        "popup": get_reservation_hover_text(reservation, user),
+        "type": get_reservation_type(reservation, user),
+    }
+
+
 # TODO: Comment and test
 def get_reservation_data(request):
     try:
@@ -79,6 +74,8 @@ def get_reservation_data(request):
         "week": week,
         "canUse": machine.can_user_use(request.user),
         "machine": machine.pk,
+        "canIgnoreRules": any(quota.ignore_rules and quota.can_make_more_reservations(request.user) for quota in
+                              Quota.get_user_quotas(request.user, machine.machine_type)),
         "rules": [
             {
                 "max_inside": rule.max_hours,
@@ -93,13 +90,9 @@ def get_reservation_data(request):
             } for rule in ReservationRule.objects.filter(machine_type=machine.machine_type)
         ],
         "reservations": [
-            {
-                "start_time": reservation.start_time,
-                "end_time": reservation.end_time,
-                "popup": get_reservation_hover_text(reservation, request.user),
-                "type": get_reservation_type(reservation, request.user),
-            } for reservation in Reservation.objects.filter(machine=machine, end_time__gte=start_of_week,
-                                                            start_time__lt=start_of_week + timezone.timedelta(days=7))
+            wrap_reservation(reservation, request.user) for reservation in
+            Reservation.objects.filter(machine=machine, end_time__gte=start_of_week,
+                                       start_time__lt=start_of_week + timezone.timedelta(days=7))
         ]
     }
 

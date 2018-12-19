@@ -1,0 +1,6 @@
+<div class="ui checkbox">
+    <input type="checkbox" id="{{ widget.attrs.id }}" name="{{ widget.name }}" {% if widget.attrs.checked %}checked{% endif %}>
+    <label>{{ widget.attrs.label }}</label>
+</div>
+
+<script>$("#{{ widget.attrs.id }}").closest(".ui.checkbox").checkbox()</script>

@@ -11,7 +11,7 @@
             {% elif not can_make_more_reservations %}
        data-content="{% trans "You have reached the maximum number of future reservations" %}"
             {% endif %}
-       href="{% url 'make_reservation' machine=machine %}">
+       href="{% url 'create_reservation' machine=machine.pk %}">
         <i class="large middle aligned make_col_yellow plus icon"></i>
         <div class="content">
             <div class="header">{% trans "New reservation" %}</div>

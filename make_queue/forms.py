@@ -1,63 +1,48 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.forms import ModelChoiceField, IntegerField
+from django.forms import ModelChoiceField, IntegerField, ModelForm, BooleanField
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from make_queue.fields import MachineTypeField, MachineTypeForm
 from make_queue.models.course import Printer3DCourse
-from make_queue.models.models import Machine, ReservationRule, Quota
+from make_queue.models.models import Machine, ReservationRule, Quota, Reservation
 from news.models import TimePlace
-from web.widgets import SemanticTimeInput, SemanticChoiceInput, SemanticSearchableChoiceInput, SemanticDateInput
+from web.widgets import SemanticTimeInput, SemanticChoiceInput, SemanticSearchableChoiceInput, SemanticDateInput, \
+    SemanticLabeledCheckboxInput, SemanticGroupedChoiceInput, SemanticDateTimeInput
 
 
-class ReservationForm(forms.Form):
-    """Form for creating or changing a reservation"""
-    start_time = forms.DateTimeField()
-    end_time = forms.DateTimeField()
-    machine_type = forms.ChoiceField(
-        choices=((machine_type.name, machine_type.name) for machine_type in MachineTypeField.possible_machine_types),
-        required=False)
-    event = forms.BooleanField(required=False)
-    event_pk = forms.CharField(required=False)
-    special = forms.BooleanField(required=False)
-    special_text = forms.CharField(required=False, max_length=20)
-    comment = forms.CharField(required=False, max_length=2000, initial="")
+class ReservationForm(ModelForm):
+    class Meta:
+        model = Reservation
+        fields = ["machine", "start_time", "end_time", "comment", "event", "special", "special_text"]
+        widgets = {
+            "machine": SemanticGroupedChoiceInput(label=_("Machine"), group_label=_("Machine type"),
+                                                  group_prompt=_("Select machine type"), prompt=_("Select machine"),
+                                                  attrs={"required": True}),
+            "special": SemanticLabeledCheckboxInput(label="MAKE NTNU"),
+            "event": SemanticSearchableChoiceInput(prompt_text=_("Select event")),
+            "start_time": SemanticDateTimeInput(default=lambda: timezone.now(), custom_js=True),
+            "end_time": SemanticDateTimeInput(custom_js=True),
+        }
 
-    def __init__(self, *args, **kwargs):
-        super(ReservationForm, self).__init__(*args, **kwargs)
+    is_event = BooleanField(widget=SemanticLabeledCheckboxInput(label=_("Event")), required=False)
 
-        self.fields["machine_name"] = forms.ChoiceField(
-            choices=((machine.pk, machine.name) for machine in Machine.objects.all()))
+    def __init__(self, *args, user=None, machine=0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["is_event"].initial = self.instance is not None and self.instance.event is not None
+        # Only show the user the machines it can use
+        self.fields["machine"].choices = (
+            (machine_type.name, tuple(
+                (machine.pk, machine.name) for machine in Machine.objects.filter(machine_type=machine_type)
+            )) for machine_type in MachineTypeField.possible_machine_types if machine_type.can_user_use(user)
+        )
 
-    def clean(self):
-        """
-        Cleans and validates the given form
-
-        :return: A dictionary of clean data
-        """
-        cleaned_data = super().clean()
-
-        # Check that the given machine exists
-        machine_query = Machine.objects.filter(pk=cleaned_data["machine_name"])
-
-        if not machine_query.exists():
-            raise ValidationError("Machine name and machine type does not match")
-
-        cleaned_data["machine"] = machine_query.first()
-
-        # If the reservation is an event, check that it exists
-        if cleaned_data["event"]:
-            event_query = TimePlace.objects.filter(pk=cleaned_data["event_pk"])
-            if not event_query.exists():
-                raise ValidationError("Event must exist")
-            cleaned_data["event"] = event_query.first()
-
-        if cleaned_data["event"] and cleaned_data["special"]:
-            raise ValidationError("Cannot be both special and event")
-
-        return cleaned_data
+        self.fields["event"].choices = ((timeplace.pk, str(timeplace)) for timeplace in TimePlace.objects.future())
+        # Want to be able to set initial value for the machine field
+        if machine:
+            self.fields["machine"].initial = machine
 
 
 class RuleForm(forms.ModelForm):

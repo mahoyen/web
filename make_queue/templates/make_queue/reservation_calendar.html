@@ -4,7 +4,6 @@
 {% load l10n %}
 
 {% localize off %}
-
     <link rel="stylesheet" href="{% static 'make_queue/css/calendar.css' %}">
 
     <div class="attached ui buttons">
@@ -34,12 +33,34 @@
                     {% trans "Week" %} <span></span>
                 </div>
             </th>
-            {% for day in week_days %}
-                <th>
-                    <div class="title large">{{ day.date|date:"D"|title }}</div>
-                    <div class="title medium"></div>
-                </th>
-            {% endfor %}
+            <th>
+                <div class="title large">{% trans "Mon" %}</div>
+                <div class="title medium"></div>
+            </th>
+            <th>
+                <div class="title large">{% trans "Tue" %}</div>
+                <div class="title medium"></div>
+            </th>
+            <th>
+                <div class="title large">{% trans "Wed" %}</div>
+                <div class="title medium"></div>
+            </th>
+            <th>
+                <div class="title large">{% trans "Thu" %}</div>
+                <div class="title medium"></div>
+            </th>
+            <th>
+                <div class="title large">{% trans "Fri" %}</div>
+                <div class="title medium"></div>
+            </th>
+            <th>
+                <div class="title large">{% trans "Sat" %}</div>
+                <div class="title medium"></div>
+            </th>
+            <th>
+                <div class="title large">{% trans "Sun" %}</div>
+                <div class="title medium"></div>
+            </th>
         </tr>
         </thead>
         <tr class="wrapping">
@@ -51,9 +72,10 @@
                 {% endfor %}
                 <div class="half_height"></div>
             </td>
-            {% for day in week_days %}
+            {% numeric_range 0 7 as days %}
+            {% for day in days %}
                 <td class="wrapping">
-                    <div class="day" data-date="{{ day.date|date:"Y-m-d" }}" data-week-index="{{ day.date.weekday }}">
+                    <div class="day" data-date="" data-week-index="{{ day }}">
                         {% numeric_range 0 7 as num_indication_lines %}
                         {% for line in num_indication_lines %}
                             <div class="indicator hour"></div>

@@ -1,0 +1,94 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static "make_queue/css/general.css" %}">
+    {{ form.media }}
+{% endblock %}
+
+
+{% block body %}
+    <div class="ui container">
+        <h1>
+            {% block form_title %}
+                {% trans "Change reservation" %}
+            {% endblock %}
+        </h1>
+        {% for error in form.non_field_errors %}
+            <div class="ui error message">
+                <i class="close icon"></i>
+                {{ error }}
+            </div>
+        {% endfor %}
+        <form class="ui form" method="post" data-reservation="{{ reservation }}" action="" id="reservation-form">
+            {% csrf_token %}
+            <div class="ui {% block disable_machine_selection %}disabled{% endblock %} field">
+                {{ form.machine }}
+            </div>
+            <div class="ui two fields">
+                <div class="ui {% if disable_start_time %}disabled{% endif %} field">
+                    <label>{{ form.start_time.label }}</label>
+                    {{ form.start_time }}
+                </div>
+                <div class="ui field">
+                    <label>{{ form.end_time.label }}</label>
+                    {{ form.end_time }}
+                </div>
+            </div>
+            <div class="ui field">
+                <label>{{ form.comment.label }}</label>
+                {{ form.comment }}
+            </div>
+            {% if perms.make_queue.can_create_event_reservation %}
+                <div class="ui two fields">
+                    <div class="ui field">
+                        <div class="ui two fields">
+                            <div class="ui field">
+                                {{ form.is_event }}
+                            </div>
+                            <div class="ui field">
+                                {{ form.special }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui make_hidden field">
+                        <label>{{ form.special_text.label }}</label>
+                        {{ form.special_text }}
+                    </div>
+                    <div class="ui make_hidden field">
+                        <label>{{ form.event.label }}</label>
+                        {{ form.event }}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="float_fix">
+                <button class="ui primary right floated button">
+                    {% block submit_button %}
+                        {% trans "Change" %}
+                    {% endblock %}
+                </button>
+            </div>
+        </form>
+
+        <div id="calendar-container">
+            {% include "make_queue/reservation_calendar.html" %}
+        </div>
+    </div>
+
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        {# This is the maximum date in the future for which one can make reservations #}
+        let maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + {{ max_days_in_advance }});
+        {% block variable_initialization %}
+            let minDate = new Date(Math.min(new Date().valueOf(), new Date($("#id_start_time").val()).valueOf()));
+        {% endblock %}
+    </script>
+    <script src="{% static "make_queue/js/reservation_edit.js" %}"></script>
+{% endblock scripts %}
