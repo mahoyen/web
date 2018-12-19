@@ -1,7 +1,3 @@
-from math import ceil
-
-from abc import abstractmethod
-from ckeditor_uploader.fields import RichTextUploadingField
 from datetime import timedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -13,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from make_queue.fields import MachineTypeField
 from make_queue.util.time import timedelta_to_hours
 from news.models import TimePlace
+from web.multilingual.database import MultiLingualRichTextUploadingField
 
 
 class Machine(models.Model):
@@ -31,14 +28,12 @@ class Machine(models.Model):
     machine_model = models.CharField(max_length=40)
     machine_type = MachineTypeField(null=True)
 
-    @abstractmethod
     def get_reservation_set(self):
         return Reservation.objects.filter(machine=self)
 
     def get_next_reservation(self):
         return self.get_reservation_set().filter(start_time__gt=timezone.now()).order_by('start_time').first()
 
-    @abstractmethod
     def can_user_use(self, user):
         return self.machine_type.can_user_use(user)
 
@@ -47,6 +42,7 @@ class Machine(models.Model):
                self.get_reservation_set().filter(start_time__gte=start_time, end_time__lte=end_time) | \
                self.get_reservation_set().filter(start_time__lt=end_time, start_time__gt=start_time,
                                                  end_time__gte=end_time)
+
     def __str__(self):
         return self.name + " - " + self.machine_model
 
@@ -65,8 +61,7 @@ class MachineUsageRule(models.Model):
     Allows for specification of rules for each type of machine
     """
     machine_type = MachineTypeField(unique=True)
-    content = RichTextUploadingField()
-    content_en = RichTextUploadingField()
+    content = MultiLingualRichTextUploadingField()
 
 
 class Quota(models.Model):
@@ -136,17 +131,18 @@ class Quota(models.Model):
 
 
 class Reservation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    event = models.ForeignKey(TimePlace, null=True, blank=True, on_delete=models.CASCADE)
-    showed = models.NullBooleanField(default=None)
-    special = models.BooleanField(default=False)
-    special_text = models.CharField(max_length=64)
     reservation_future_limit_days = 28
-    comment = models.TextField(max_length=2000, default="")
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
-    quota = models.ForeignKey(Quota, on_delete=models.CASCADE, null=True)
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
+    start_time = models.DateTimeField(verbose_name=_("Start time"))
+    end_time = models.DateTimeField(verbose_name=_("End time"))
+    event = models.ForeignKey(TimePlace, null=True, blank=True, on_delete=models.CASCADE, verbose_name=_("Event"))
+    showed = models.NullBooleanField(default=None, verbose_name=_("Showed"))
+    special = models.BooleanField(default=False, verbose_name=_("MAKE NTNU"))
+    special_text = models.CharField(max_length=64, blank=True, verbose_name=_("Description"))
+    comment = models.TextField(max_length=2000, default="", blank=True, verbose_name=_("Comment"))
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE, verbose_name=_("Machine"))
+    quota = models.ForeignKey(Quota, on_delete=models.CASCADE, null=True, verbose_name=_("Quota"))
 
     def save(self, *args, **kwargs):
         if not self.validate():
