@@ -72,7 +72,6 @@ class EditUsageRulesView(PermissionRequiredMixin, UpdateView):
     template_name = 'contentbox/edit.html'
     fields = (
         'content',
-        'content_en',
     )
     permission_required = (
         'make_queue.change_machineusagerule',
