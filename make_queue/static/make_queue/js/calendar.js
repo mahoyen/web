@@ -1,3 +1,11 @@
+Date.prototype.formatHHMM = function () {
+    /**
+     * Returns a formatted string of the hours and minutes of the given date using the format HH:MM
+     */
+    return ("0" + this.getHours()).slice(-2) + ":" + ("0" + this.getMinutes()).slice(-2)
+};
+
+
 class Reservation {
 
     constructor(startTime, endTime, popup, type) {
@@ -44,7 +52,6 @@ class Reservation {
         let endDay = new Date(Math.min(weekEnd, this.endTime));
         let days = $("#calendar").find(".day");
 
-        // TODO: Fix issue with Sunday to Monday in Sunday week
         for (let day = startDay.getISO8601Day(); day <= endDay.getISO8601Day(); day++) {
             // The first day of the reservation starts late
             let startTime = 0;
@@ -57,7 +64,7 @@ class Reservation {
             if (endDay.getISO8601Day() === day) {
                 endTime = endDay.toTime();
             }
-            $(days[day]).append(this.getElement(startTime, endTime))
+            $(days[day]).append(this.getElement(startTime, endTime));
         }
     }
 
@@ -170,7 +177,6 @@ class Calendar {
     constructor(machine, displayDate = new Date()) {
         this.machine = machine;
         this.date = displayDate;
-        this.rule
         this.reservationHandler = new ReservationHandler();
 
         // Setup actions
@@ -236,7 +242,8 @@ class Calendar {
                 calendar.updateHeaders();
                 calendar.updateCurrentTime();
                 let weekStart = calendar.date.firstDayOfWeek();
-                let weekEnd = weekStart.cycleWeek(1);
+                // The end of the week is 1 millisecond before midnight monday the next week
+                let weekEnd = new Date(weekStart.cycleWeek(1).valueOf() - 1);
 
                 calendar.reservationHandler.reservations = response.reservations;
                 for (let reservation of calendar.reservationHandler.reservations) {
@@ -312,6 +319,10 @@ class Calendar {
         return this._date
     }
 
+    get reservations() {
+        return this.reservationHandler.reservations;
+    }
+
 }
 
 
@@ -333,10 +344,7 @@ class CalendarSelector {
 
     handleMouseDown(event) {
         if (this.date1 !== undefined) {
-            this.date1 = undefined;
-            this.date2 = undefined;
-            this.selecting = false;
-            this.draw()
+            this.clearSelection();
         } else {
             this.selecting = true;
             this.date1 = this.targetToTime(event);
@@ -351,17 +359,22 @@ class CalendarSelector {
     handleMouseMove() {
         if (this.selecting) {
             this.date2 = this.targetToTime(event);
-            this.date2 = modifyToFirstValid(this.calendar.rules, this.startTime, this.endTime, this.startTime.getTime() === this.date1.getTime());
+            this.assureNonOverlapping();
+            this.date2 = modifyToFirstValid(this.calendar.rules, this.startTime, this.endTime, this.date2 >= this.date1.getTime());
             this.draw();
         }
     }
 
     get startTime() {
-        return new Date(Math.min(this.date1, this.date2));
+        let date = new Date(Math.min(this.date1, this.date2));
+        date.setMinutes(Math.ceil(date.getMinutes() / 5) * 5, 0, 0);
+        return date;
     }
 
     get endTime() {
-        return new Date(Math.max(this.date1, this.date2));
+        let date = new Date(Math.max(this.date1, this.date2));
+        date.setMinutes(Math.floor(date.getMinutes() / 5) * 5, 0, 0);
+        return new Date(Math.max(date.valueOf(), this.startTime.valueOf()));
     }
 
     draw() {
@@ -371,17 +384,21 @@ class CalendarSelector {
         let startDate = this.startTime;
         let endDate = this.endTime;
 
+        if (startDate.valueOf() === endDate.valueOf()) return;
+
         for (let dayIndex = startDate.getISO8601Day(); dayIndex <= endDate.getISO8601Day(); dayIndex++) {
             let element = $("<div class='time_selection'>");
 
             let dayStartTime = 0;
             if (dayIndex === startDate.getISO8601Day()) {
                 dayStartTime = startDate.toTime();
+                element.append("<div class='start_time'>" + startDate.formatHHMM() + "</div>");
             }
 
             let dayEndTime = 24;
             if (dayIndex === endDate.getISO8601Day()) {
                 dayEndTime = endDate.toTime();
+                element.append("<div class='end_time'>" + endDate.formatHHMM() + "</div>")
             }
 
             element.css("top", dayStartTime / 24 * 100 + "%");
@@ -405,6 +422,25 @@ class CalendarSelector {
         date.setTimeOfDay(position / dayObj.height() * 24);
 
         return new Date(Math.max(date, new Date()));
+    }
+
+    assureNonOverlapping() {
+        /**
+         * Makes sure that the selected period does not overlap any of the reservations of the calendar
+         */
+        let overlappingReservation = this.calendar.reservations.filter(reservation => reservation.endTime > this.startTime && reservation.startTime < this.endTime);
+        if (this.date2 <= this.date1 && overlappingReservation.length) {
+            this.date2 = new Date(Math.max.apply(null, overlappingReservation.map(reservation => reservation.endTime.valueOf())))
+        } else if (this.date2 > this.date1 && overlappingReservation.length) {
+            this.date2 = new Date(Math.min.apply(null, overlappingReservation.map(reservation => reservation.startTime.valueOf())))
+        }
+    }
+
+    clearSelection() {
+        this.date1 = undefined;
+        this.date2 = undefined;
+        this.selecting = false;
+        this.draw();
     }
 }
 

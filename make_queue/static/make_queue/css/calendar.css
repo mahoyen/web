@@ -136,6 +136,10 @@
     border-radius: 1em;
     width: 3em;
     z-index: 200;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .time_selection > .extend {
