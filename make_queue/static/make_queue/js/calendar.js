@@ -222,6 +222,14 @@ class Calendar {
         return this.ignoreRules;
     }
 
+    set canUse(value) {
+        this._canUse = value;
+    }
+
+    get canUse() {
+        return this._canUse || false;
+    }
+
     update(callback) {
         let calendar = this;
         $.ajax({
@@ -236,6 +244,8 @@ class Calendar {
             success: function (response) {
                 $("#calendar").find(".reservation").remove();
 
+
+                calendar.canUse = response.canUse;
                 calendar.rules = response.rules;
                 calendar.ignoreRules = response.canIgnoreRules;
 
@@ -347,6 +357,8 @@ class CalendarSelector {
     }
 
     handleMouseDown(event) {
+        // Do not allow selection from users that cannot use the given machine
+        if (!this.calendar.canUse) return;
         if (this.date1 !== undefined) {
             this.clearSelection();
         } else {
@@ -456,5 +468,4 @@ class CalendarSelector {
 }
 
 // TODO? Fix queries to #calendar to the calendar object instead?
-// TODO Fix check for allowed selection
 // TODO Fix popup

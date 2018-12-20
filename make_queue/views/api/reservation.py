@@ -74,7 +74,8 @@ def get_reservation_data(request):
         "week": week,
         "canUse": machine.can_user_use(request.user),
         "machine": machine.pk,
-        "canIgnoreRules": any(quota.ignore_rules and quota.can_make_more_reservations(request.user) for quota in
+        "canIgnoreRules": request.user.is_authenticated and
+                          any(quota.ignore_rules and quota.can_make_more_reservations(request.user) for quota in
                               Quota.get_user_quotas(request.user, machine.machine_type)),
         "rules": [
             {
