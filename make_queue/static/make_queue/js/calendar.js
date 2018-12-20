@@ -200,7 +200,7 @@ class Calendar {
         if (this.machine !== undefined && this.date !== undefined) {
             this.update();
         }
-        new CalendarSelector(this);
+        this.selector = new CalendarSelector(this);
 
         // Update the time indicator every minute
         setInterval(this.updateCurrentTime.bind(this), 60 * 1000)
@@ -241,6 +241,10 @@ class Calendar {
 
                 calendar.updateHeaders();
                 calendar.updateCurrentTime();
+
+                // Clear the current selection when changing the content of the calendar
+                calendar.selector.clearSelection();
+
                 let weekStart = calendar.date.firstDayOfWeek();
                 // The end of the week is 1 millisecond before midnight monday the next week
                 let weekEnd = new Date(weekStart.cycleWeek(1).valueOf() - 1);
@@ -346,6 +350,10 @@ class CalendarSelector {
         if (this.date1 !== undefined) {
             this.clearSelection();
         } else {
+            $("body").on({
+                "mouseup": this.handleMouseUp.bind(this),
+                "touchup": this.handleMouseUp.bind(this),
+            }).css("user-select", "none");
             this.selecting = true;
             this.date1 = this.targetToTime(event);
             this.date2 = this.targetToTime(event);
@@ -354,6 +362,7 @@ class CalendarSelector {
 
     handleMouseUp() {
         this.selecting = false;
+        $("body").off("mouseup").off("touchup").css("user-select", "");
     }
 
     handleMouseMove() {
@@ -421,7 +430,7 @@ class CalendarSelector {
         let date = this.calendar.getDateDayOfWeek($("#calendar").find(".day").index(dayObj));
         date.setTimeOfDay(position / dayObj.height() * 24);
 
-        return new Date(Math.max(date, new Date()));
+        return new Date(Math.max(date.valueOf(), new Date().valueOf()));
     }
 
     assureNonOverlapping() {
@@ -445,7 +454,5 @@ class CalendarSelector {
 }
 
 // TODO? Fix queries to #calendar to the calendar object instead?
-// TODO Fix selectable area
 // TODO Fix allow selection
-// TODO Fix CSS (simplify, fix legend)
-// TODO Strong typing
+// TODO Fix popup
