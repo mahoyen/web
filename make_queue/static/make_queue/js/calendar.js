@@ -369,7 +369,9 @@ class CalendarSelector {
         if (this.selecting) {
             this.date2 = this.targetToTime(event);
             this.assureNonOverlapping();
-            this.date2 = modifyToFirstValid(this.calendar.rules, this.startTime, this.endTime, this.date2 >= this.date1.getTime());
+            if (!this.calendar.canIgnoreRules) {
+                this.date2 = modifyToFirstValid(this.calendar.rules, this.startTime, this.endTime, this.date2 >= this.date1.getTime());
+            }
             this.draw();
         }
     }
@@ -454,5 +456,5 @@ class CalendarSelector {
 }
 
 // TODO? Fix queries to #calendar to the calendar object instead?
-// TODO Fix allow selection
+// TODO Fix check for allowed selection
 // TODO Fix popup
