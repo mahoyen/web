@@ -170,6 +170,7 @@ class Calendar {
     constructor(machine, displayDate = new Date()) {
         this.machine = machine;
         this.date = displayDate;
+        this.rule
         this.reservationHandler = new ReservationHandler();
 
         // Setup actions
@@ -203,6 +204,13 @@ class Calendar {
         return this.ruleset;
     }
 
+    set rules(rules) {
+        this.ruleset = [];
+        for (let rule of rules) {
+            this.ruleset.push(new ReservationRule(rule.periods, rule.max_inside, rule.max_crossed))
+        }
+    }
+
     get canIgnoreRules() {
         if (this.ignoreRules === undefined) return false;
         return this.ignoreRules;
@@ -222,7 +230,7 @@ class Calendar {
             success: function (response) {
                 $("#calendar").find(".reservation").remove();
 
-                calendar.ruleset = response.rules;
+                calendar.rules = response.rules;
                 calendar.ignoreRules = response.canIgnoreRules;
 
                 calendar.updateHeaders();

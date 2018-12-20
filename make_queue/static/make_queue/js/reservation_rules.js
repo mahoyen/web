@@ -1,5 +1,45 @@
-// TODO: Rewrite to make rules class based
-// TODO: Fix import in make_reservation.js
+class ReservationRule {
+    /**
+     * Class indicate a single reservation rule
+     * @param periods The periods for which the rule is valid
+     * @param maxInside The maximum duration of a reservation solely inside on of the periods of the rule
+     * @param maxCrossed The maximum duration of a reservation inside this rule if the reservation is inside several
+     *                   periods of this or other rules
+     */
+    constructor(periods, maxInside, maxCrossed) {
+        this.periods = periods;
+        this.maxInside = maxInside;
+        this.maxCrossed = maxCrossed;
+    }
+
+
+    static dateToWeekRep(date) {
+        /**
+         * Converts a date to the week representation used for reservation rules [0, 7)
+         */
+        return (date.getDay() + 6) % 7 + date.getHours() / 24 + date.getMinutes() / 1440 + date.getSeconds() / 86400;
+    }
+
+    hoursInside(startTime, endTime) {
+        /**
+         * Calculates how many hours the period [startTime, endTime] overlap with this rule
+         */
+        startTime = ReservationRule.dateToWeekRep(startTime);
+        endTime = ReservationRule.dateToWeekRep(endTime);
+        let hours = 0;
+        this.periods.forEach(function (period) {
+            hours += overlap(period[0], period[1], startTime, endTime, 7) * 24;
+        });
+        return hours.toPrecision(4);
+    }
+}
+
+function duration(startTime, endTime) {
+    /**
+     * Calculates the duration of the time period [startTime, endTime] in hours
+     */
+    return (endTime.valueOf() - startTime.valueOf()) / (60 * 60 * 1000);
+}
 
 
 function overlap(a, b, c, d, mod) {
@@ -17,44 +57,28 @@ function overlap(a, b, c, d, mod) {
 }
 
 function inside(a, b, c, mod) {
+    /**
+     * Checks if c is inside the period defined by [a, b]
+     */
     b = (b - a + mod) % mod;
     c = (c - a + mod) % mod;
     return c <= b;
 }
 
-function dateToWeekRep(date) {
-    return (date.getDay() + 6) % 7 + date.getHours() / 24 + date.getMinutes() / 1440 + date.getSeconds() / 86400;
-}
-
-function hoursInsideRule(rule, startTime, endTime) {
-    /**
-     * Calculates how many hours the period [startTime, endTime] overlap with the given rule
-     */
-    // Convert date to day inside week
-    startTime = dateToWeekRep(startTime);
-    endTime = dateToWeekRep(endTime);
-    let hours = 0;
-    rule.periods.forEach(function (period) {
-        hours += overlap(period[0], period[1], startTime, endTime, 7) * 24;
-    });
-    return hours;
-}
 
 function getPeriodIn(rules, date, direction) {
     date = (date.getDay() + 6) % 7 + date.getHours() / 24 + date.getMinutes() / 1440;
-    for (let ruleIndex = 0; ruleIndex < rules.length; ruleIndex++) {
-        let rule = rules[ruleIndex];
-        for (let periodIndex = 0; periodIndex < rule.periods.length; periodIndex++) {
-            if (direction === 1 && rule.periods[periodIndex][0] === date) {
-                continue;
-            } else if (direction === 0 && rule.periods[periodIndex][1] === date) {
+    for (let rule of rules) {
+        for (let period of rule.periods) {
+            if (direction === 1 && period[0] === date || direction === 0 && period[1] === date) {
                 continue;
             }
-            if (inside(rule.periods[periodIndex][0], rule.periods[periodIndex][1], date, 7)) {
+            if (inside(period[0], period[1], date, 7)) {
                 return {
-                    "period": rule.periods[periodIndex],
-                    "max_inside": rule.max_inside,
-                    "max_crossed": rule.max_crossed,
+                    "startTime": period[0],
+                    "endTime": period[1],
+                    "maxInside": rule.maxInside,
+                    "maxCrossed": rule.maxCrossed,
                 }
             }
         }
@@ -65,13 +89,7 @@ function getRulesCovered(rules, startTime, endTime) {
     /**
      * Returns the rules which overlap with the period [startTime, endTime]
      */
-    let insideRules = [];
-    rules.forEach(function (rule) {
-        if (hoursInsideRule(rule, startTime, endTime)) {
-            insideRules.push(rule);
-        }
-    });
-    return insideRules;
+    return rules.filter(rule => rule.hoursInside(startTime, endTime));
 }
 
 function isValidForRules(rules, startTime, endTime) {
@@ -79,25 +97,22 @@ function isValidForRules(rules, startTime, endTime) {
      * Checks if the period [startTime, endTime] is valid for the given set of rules
      */
     let coveredRules = getRulesCovered(rules, startTime, endTime);
+    // Special handling of reservations withing a single period
     if (coveredRules.length === 1) {
-        return coveredRules[0].max_inside >= hoursInsideRule(coveredRules[0], startTime, endTime).toPrecision(4);
+        return coveredRules[0].maxInside >= coveredRules[0].hoursInside(startTime, endTime);
     }
 
-    // If the reservation is shorter than the maximum inside for any of the rules, it should also be valid for
+    // If the reservation is shorter than the maximum inside value for any of the rules, it should also be valid for
     // the whole duration, even though it breaks with one or more of the max_crossed rules.
-    let minTime = 168;
-    for (let ruleIndex = 0; ruleIndex < coveredRules.length; ruleIndex++) {
-        minTime = Math.min(minTime, coveredRules[ruleIndex].max_inside);
-    }
-
-    if (minTime >= (endTime.valueOf() - startTime.valueOf()) / (60 * 60 * 1000)) {
+    let minTime = Math.min.apply(null, coveredRules.map(rule => rule.maxInside));
+    if ((endTime.valueOf() - startTime.valueOf()) / (60 * 60 * 1000) <= minTime) {
         return true;
     }
 
     let maxTime = 0;
-    for (let ruleIndex = 0; ruleIndex < coveredRules.length; ruleIndex++) {
-        maxTime = Math.max(maxTime, coveredRules[ruleIndex].max_inside);
-        if (coveredRules[ruleIndex].max_crossed < hoursInsideRule(coveredRules[ruleIndex], startTime, endTime).toPrecision(4)) {
+    for (let rule of coveredRules) {
+        maxTime = Math.max(maxTime, rule.maxInside);
+        if (rule.maxCrossed < rule.hoursInside(startTime, endTime)) {
             return false;
         }
     }
@@ -115,15 +130,11 @@ function modifyToFirstValid(rules, startTime, endTime, modificationDirection) {
         let coveredRules = getRulesCovered(rules, startTime, endTime);
 
         // Check if the total time of the reservation is greater than what is allowed by the covered rules
-        let maxTime = 0;
-        let minTime = 168;
-        for (let ruleIndex = 0; ruleIndex < coveredRules.length; ruleIndex++) {
-            maxTime = Math.max(maxTime, coveredRules[ruleIndex].max_inside);
-            minTime = Math.min(minTime, coveredRules[ruleIndex].max_inside);
-        }
+        let maxTime = Math.max.apply(null, coveredRules.map(rule => rule.maxInside));
+        let minTime = Math.min.apply(null, coveredRules.map(rule => rule.maxInside));
 
         // Modify the start/end time based on the maximum allowed time for the covered rules
-        if (maxTime < (endTime.valueOf() - startTime.valueOf()) / (60 * 60 * 1000)) {
+        if (maxTime < duration(startTime, endTime)) {
             if (modificationDirection) {
                 endTime = new Date(startTime.valueOf() + maxTime * 60 * 60 * 1000);
             } else {
@@ -135,17 +146,17 @@ function modifyToFirstValid(rules, startTime, endTime, modificationDirection) {
         // If the period is still not valid, this means that we have to remove the rules one by one
         let period = getPeriodIn(rules, modificationDirection ? endTime : startTime, modificationDirection);
         if (modificationDirection) {
-            let currentOverlap = (overlap(period.period[0], period.period[1], period.period[0], dateToWeekRep(endTime), 7) * 24).toPrecision(4);
+            let currentOverlap = (overlap(period.startTime, period.endTime, period.startTime, ReservationRule.dateToWeekRep(endTime), 7) * 24).toPrecision(4);
             // Shrink the overlap until
-            if (currentOverlap > period.max_inside) {
+            if (currentOverlap > period.maxInside) {
                 // If the overlap with the current time period is greater than the maximum allowed inside then
                 // shrink till it is equal to that.
-                endTime = new Date(endTime.valueOf() - (currentOverlap - period.max_inside) * 60 * 60 * 1000);
-            } else if (currentOverlap > period.max_crossed) {
+                endTime = new Date(endTime.valueOf() - (currentOverlap - period.maxInside) * 60 * 60 * 1000);
+            } else if (currentOverlap > period.maxCrossed) {
                 // If the overlap with the current time period is greater than the maximum allowed when multiple
                 // time periods are selected, then shrink till it is equal to that.
                 endTime = new Date(Math.max(
-                    endTime.valueOf() - (currentOverlap - period.max_crossed) * 60 * 60 * 1000,
+                    endTime.valueOf() - (currentOverlap - period.maxCrossed) * 60 * 60 * 1000,
                     startTime.valueOf() + minTime * 60 * 60 * 1000
                 ));
             } else {
@@ -157,16 +168,16 @@ function modifyToFirstValid(rules, startTime, endTime, modificationDirection) {
                 ));
             }
         } else {
-            let currentOverlap = (overlap(period.period[0], period.period[1], dateToWeekRep(startTime), period.period[1], 7) * 24).toPrecision(4);
-            if (currentOverlap > period.max_inside) {
+            let currentOverlap = (overlap(period.startTime, period.endTime, ReservationRule.dateToWeekRep(startTime), period.endTime, 7) * 24).toPrecision(4);
+            if (currentOverlap > period.maxInside) {
                 // If the overlap with the current time period is greater than the maximum allowed inside then
                 // shrink till it is equal to that.
-                startTime = new Date(startTime.valueOf() + (currentOverlap - period.max_inside) * 60 * 60 * 1000);
-            } else if (currentOverlap > period.max_crossed) {
+                startTime = new Date(startTime.valueOf() + (currentOverlap - period.maxInside) * 60 * 60 * 1000);
+            } else if (currentOverlap > period.maxCrossed) {
                 // If the overlap with the current time period is greater than the maximum allowed when multiple
                 // time periods are selected, then shrink till it is equal to that.
                 startTime = new Date(Math.min(
-                    startTime.valueOf() + (currentOverlap - period.max_crossed) * 60 * 60 * 1000,
+                    startTime.valueOf() + (currentOverlap - period.maxCrossed) * 60 * 60 * 1000,
                     endTime.valueOf() - minTime * 60 * 60 * 1000
                 ));
             } else {
