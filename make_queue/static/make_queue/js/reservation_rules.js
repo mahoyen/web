@@ -89,7 +89,7 @@ function getRulesCovered(rules, startTime, endTime) {
     /**
      * Returns the rules which overlap with the period [startTime, endTime]
      */
-    return rules.filter(rule => rule.hoursInside(startTime, endTime));
+    return rules.filter(rule => rule.hoursInside(startTime, endTime) > 0);
 }
 
 function isValidForRules(rules, startTime, endTime) {
