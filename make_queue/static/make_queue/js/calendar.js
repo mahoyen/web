@@ -230,6 +230,10 @@ class Calendar {
         return this._canUse || false;
     }
 
+    get element() {
+        return $("#calendar");
+    }
+
     update(callback) {
         let calendar = this;
         $.ajax({
@@ -346,13 +350,25 @@ class CalendarSelector {
         this.calendar = calendar;
         this.selecting = false;
 
-        $("#calendar").find(".day").on({
+        this.calendar.element.find(".day").on({
             "touchstart": this.handleMouseDown.bind(this),
             "touchend": this.handleMouseUp.bind(this),
             "touchmove": this.handleMouseMove.bind(this),
             "mousedown": this.handleMouseDown.bind(this),
             "mouseup": this.handleMouseUp.bind(this),
             "mousemove": this.handleMouseMove.bind(this),
+        });
+
+        // Want selection to continue when over the footer element
+        this.calendar.element.find("tfoot").on({
+            "mousemove": this.handleMouseMoveBottom.bind(this),
+            "touchmove": this.handleMouseMoveBottom.bind(this),
+        });
+
+        // Want selection to continue when over the header elements
+        this.calendar.element.find("th:not(.month)").on({
+            "mousemove": this.handleMouseMoveTop.bind(this),
+            "touchmove": this.handleMouseMoveTop.bind(this),
         })
     }
 
@@ -369,6 +385,7 @@ class CalendarSelector {
             this.selecting = true;
             this.date1 = this.targetToTime(event);
             this.date2 = this.targetToTime(event);
+            event.stopPropagation();
         }
     }
 
@@ -377,15 +394,48 @@ class CalendarSelector {
         $("body").off("mouseup").off("touchup").css("user-select", "");
     }
 
-    handleMouseMove() {
+    handleMouseMove(event) {
+        /**
+         * Handles mouse move over the elements representing days in the calendar
+         */
         if (this.selecting) {
-            this.date2 = this.targetToTime(event);
-            this.assureNonOverlapping();
-            if (!this.calendar.canIgnoreRules) {
-                this.date2 = modifyToFirstValid(this.calendar.rules, this.startTime, this.endTime, this.date2 >= this.date1.getTime());
-            }
-            this.draw();
+            this.setHoveredDate(this.targetToTime(event));
+            event.stopPropagation();
         }
+    }
+
+    handleMouseMoveBottom(event) {
+        /**
+         * Handles mouse move over the footer element of the calendar
+         */
+        if (this.selecting) {
+            let target = $(event.currentTarget);
+            // The calculation of the clicked position is dependent on if the event is a touch or a click event
+            let clickedPosition = event.touches ? event.touches[0].clientX : event.clientX;
+            // Calculate the number of days relative to the start of the week, based on where on the footer the mouse moved
+            let days = Math.floor((clickedPosition - target.offset().left) / (target.width() / 8));
+            this.setHoveredDate(this.calendar.getDateDayOfWeek(days));
+        }
+    }
+
+    handleMouseMoveTop(event) {
+        /**
+         * Handles mouse move over the header elements of the calendar
+         */
+        if (this.selecting) {
+            // Calculate the number of days relative to the start of the week (The first two headers is for week number)
+            let days = $(event.currentTarget).parent().children().index($(event.currentTarget)) - 2;
+            this.setHoveredDate(this.calendar.getDateDayOfWeek(days));
+        }
+    }
+
+    setHoveredDate(date) {
+        this.date2 = date;
+        this.assureNonOverlapping();
+        if (!this.calendar.canIgnoreRules) {
+            this.date2 = modifyToFirstValid(this.calendar.rules, this.startTime, this.endTime, this.date2 >= this.date1)
+        }
+        this.draw();
     }
 
     get startTime() {
@@ -401,12 +451,17 @@ class CalendarSelector {
     }
 
     draw() {
-        let days = $("#calendar").find(".day");
+        let days = this.calendar.element.find(".day");
         days.find(".time_selection").remove();
 
         let startDate = this.startTime;
         let endDate = this.endTime;
+        if (endDate.toTime() === 0) {
+            endDate = new Date(endDate.valueOf() - 1);
+            endDate.formatHHMM = () => "00:00";
+        }
 
+        // Do not draw the selection area if the start and end date is the same
         if (startDate.valueOf() === endDate.valueOf()) return;
 
         for (let dayIndex = startDate.getISO8601Day(); dayIndex <= endDate.getISO8601Day(); dayIndex++) {
@@ -440,8 +495,7 @@ class CalendarSelector {
             position = event.pageY - dayObj.offset().top;
         }
 
-        // TODO? Move to calendar
-        let date = this.calendar.getDateDayOfWeek($("#calendar").find(".day").index(dayObj));
+        let date = this.calendar.getDateDayOfWeek(this.calendar.element.find(".day").index(dayObj));
         date.setTimeOfDay(position / dayObj.height() * 24);
 
         return new Date(Math.max(date.valueOf(), new Date().valueOf()));
@@ -467,5 +521,7 @@ class CalendarSelector {
     }
 }
 
-// TODO? Fix queries to #calendar to the calendar object instead?
+
+// TODO Allow for selection of an area
+// TODO Fix selection on mobile
 // TODO Fix popup
