@@ -1,0 +1,117 @@
+{% extends 'web/base.html' %}
+{% load i18n %}
+{% load reservation_extra %}
+{% load staticfiles %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'make_queue/css/general.css' %}">
+{% endblock %}
+
+{% block title %}
+    {% trans "Current reservations" %}
+{% endblock %}
+{% block body %}
+    <div class="ui container">
+        <div class="ui huge header">
+            {% trans "Current reservations" %}
+        </div>
+        <!-- Desktop table -->
+        <table class="ui table make_my_reservation_desktop">
+            <thead>
+            <tr>
+                <th>{% trans "Reservation" %}</th>
+                <th>{% trans "Time" %}</th>
+                <th>{% trans "User" %}</th>
+                <th>{% trans "View in calendar" %}</th>
+                <th>{% trans "Mark as done" %}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for reservation in reservations %}
+                <tr class="make_my_reservation_desktop">
+                    <td>
+                        <div class="ui small header make_collapsed_header">{{ reservation.machine.name }}</div>
+                        <div>{{ reservation.machine.machine_model }}</div>
+                    </td>
+                    <td>
+                        {% if reservation.start_time.date == reservation.end_time.date %}
+                            <div>{{ reservation.start_time|date:"d/m/y" }}</div>
+                            <div>{{ reservation.start_time|date:"H:i" }}
+                                - {{ reservation.end_time|date:"H:i" }}</div>
+                        {% else %}
+                            <div>{{ reservation.start_time|date:"d/m/Y - H:i" }}</div>
+                            <div>{{ reservation.end_time|date:"d/m/Y - H:i" }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <b>{{ reservation.user.get_full_name }}</b>
+                    </td>
+                    <td>
+                        <a href="{% calendar_url_reservation reservation %}">
+                            <div class="ui button primary">
+                                {% trans "Calendar" %}
+                            </div>
+                        </a>
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'mark_reservation_done'%}">
+                            {% csrf_token %}
+                            <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
+                            <input type="submit" class="ui button green" value="{% trans "Mark as done" %}"/>
+                            {% if admin %}
+                                <input type="text" name="next" class="make_hidden"
+                                       value="{% url 'admin_reservation' %}"/>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="ui cards make_my_reservation_cards_padding make_my_reservation_tablet">
+            {% for reservation in reservations %}
+                <div class="card">
+                    <div class="content">
+                        <div class="right floated">
+                            {% if reservation.start_time.date == reservation.end_time.date %}
+                                <div>{{ reservation.start_time|date:"d/m/y" }}</div>
+                                <div>{{ reservation.start_time|date:"H:i" }}
+                                    - {{ reservation.end_time|date:"H:i" }}</div>
+                            {% else %}
+                                <div>{{ reservation.start_time|date:"d/m/Y - H:i" }}</div>
+                                <div>{{ reservation.end_time|date:"d/m/Y - H:i" }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="header">{{ reservation.machine.name }}</div>
+                        <div class="meta">{{ reservation.machine.machine_model }}<br></div>
+
+                        <div>
+                            <br>
+                            <b>{{ reservation.user.get_full_name }}</b>
+                        </div>
+                    </div>
+
+                    <div class="ui bottom attached buttons">
+                        <a class="ui primary button make_my_reservation_button_pad"
+                           href="{% calendar_url_reservation reservation %}">
+                            {% trans "Calendar" %}
+                        </a>
+                        <div class="ui green button reservation_mark_done">
+                            {% trans "Done" %}
+                            <form method="post" action="{% url 'mark_reservation_done' %}">
+                                {% csrf_token %}
+                                <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
+                                {% if admin %}
+                                    <input type="text" name="next" class="make_hidden"
+                                           value="{% url 'admin_reservation' %}"/>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{% static 'make_queue/js/my_reservations.js' %}"></script>
+{% endblock %}

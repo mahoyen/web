@@ -307,3 +307,11 @@ class FindFreeSlot(FormView):
             "free_slots": periods,
         })
         return self.render_to_response(context)
+
+
+class CurrentReservationsView(TemplateView):
+    template_name = "make_queue/current_reservations.html"
+
+    def get_context_data(self, **kwargs):
+        return {"reservations": Reservation.objects.filter(start_time__lt=timezone.now(), end_time__gt=timezone.now())
+            .order_by("machine__machine_type", "machine")}
