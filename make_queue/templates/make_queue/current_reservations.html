@@ -54,14 +54,12 @@
                         </a>
                     </td>
                     <td>
-                        <form method="post" action="{% url 'mark_reservation_done'%}">
+                        {% minutes_ago reservation.start_time as minutes_since_start %}
+                        <form method="post" action="{% url 'mark_reservation_done' %}">
                             {% csrf_token %}
                             <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
-                            <input type="submit" class="ui button green" value="{% trans "Mark as done" %}"/>
-                            {% if admin %}
-                                <input type="text" name="next" class="make_hidden"
-                                       value="{% url 'admin_reservation' %}"/>
-                            {% endif %}
+                            <input type="submit" class="ui button green " value="{% trans "Mark as done" %}"
+                                   {% if minutes_since_start < 15 %}disabled{% endif %}/>
                         </form>
                     </td>
                 </tr>
@@ -96,22 +94,25 @@
                            href="{% calendar_url_reservation reservation %}">
                             {% trans "Calendar" %}
                         </a>
-                        <div class="ui green button reservation_mark_done">
+                        {% minutes_ago reservation.start_time as minutes_since_start %}
+                        <div class="ui green button reservation_mark_done
+                            {% if minutes_since_start < 15 %}disabled{% endif %}">
                             {% trans "Done" %}
                             <form method="post" action="{% url 'mark_reservation_done' %}">
                                 {% csrf_token %}
                                 <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
-                                {% if admin %}
-                                    <input type="text" name="next" class="make_hidden"
-                                           value="{% url 'admin_reservation' %}"/>
-                                {% endif %}
                             </form>
                         </div>
+
                     </div>
                 </div>
             {% endfor %}
         </div>
     </div>
 
-    <script src="{% static 'make_queue/js/my_reservations.js' %}"></script>
+    <script>
+        $(".reservation_mark_done").click(function () {
+            $(this).children("form").submit();
+        });
+    </script>
 {% endblock %}

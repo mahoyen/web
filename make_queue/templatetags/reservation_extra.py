@@ -137,3 +137,8 @@ def sanitize_stream_name(machine):
     for original, new in values:
         name = name.replace(original, new)
     return name
+
+
+@register.simple_tag()
+def minutes_ago(datetime):
+    return (timezone.now() - datetime).total_seconds() // 60
