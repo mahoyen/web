@@ -58,6 +58,8 @@
                         <form method="post" action="{% url 'mark_reservation_done' %}">
                             {% csrf_token %}
                             <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
+                            <input type="text" name="next" class="make_hidden"
+                                   value="{% url 'current_reservations' %}"/>
                             <input type="submit" class="ui button green " value="{% trans "Mark as done" %}"
                                    {% if minutes_since_start < 15 %}disabled{% endif %}/>
                         </form>

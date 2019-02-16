@@ -232,7 +232,7 @@ class MarkReservationAsDone(RedirectView):
         reservation.end_time = timezone.now()
         reservation.save()
 
-        return self.get(request, *args, **kwargs)
+        return self.get(request, *args, next_url=request.POST.get("next"), **kwargs)
 
 
 class FindFreeSlot(FormView):
