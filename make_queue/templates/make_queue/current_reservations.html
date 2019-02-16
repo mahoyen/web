@@ -16,58 +16,71 @@
             {% trans "Current reservations" %}
         </div>
         <!-- Desktop table -->
-        <table class="ui table make_my_reservation_desktop">
-            <thead>
-            <tr>
-                <th>{% trans "Reservation" %}</th>
-                <th>{% trans "Time" %}</th>
-                <th>{% trans "User" %}</th>
-                <th>{% trans "View in calendar" %}</th>
-                <th>{% trans "Mark as done" %}</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for reservation in reservations %}
-                <tr class="make_my_reservation_desktop">
-                    <td>
-                        <div class="ui small header make_collapsed_header">{{ reservation.machine.name }}</div>
-                        <div>{{ reservation.machine.machine_model }}</div>
-                    </td>
-                    <td>
-                        {% if reservation.start_time.date == reservation.end_time.date %}
-                            <div>{{ reservation.start_time|date:"d/m/y" }}</div>
-                            <div>{{ reservation.start_time|date:"H:i" }}
-                                - {{ reservation.end_time|date:"H:i" }}</div>
-                        {% else %}
-                            <div>{{ reservation.start_time|date:"d/m/Y - H:i" }}</div>
-                            <div>{{ reservation.end_time|date:"d/m/Y - H:i" }}</div>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <b>{{ reservation.user.get_full_name }}</b>
-                    </td>
-                    <td>
-                        <a href="{% calendar_url_reservation reservation %}">
-                            <div class="ui button primary">
-                                {% trans "Calendar" %}
-                            </div>
-                        </a>
-                    </td>
-                    <td>
-                        {% minutes_ago reservation.start_time as minutes_since_start %}
-                        <form method="post" action="{% url 'mark_reservation_done' %}">
-                            {% csrf_token %}
-                            <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
-                            <input type="text" name="next" class="make_hidden"
-                                   value="{% url 'current_reservations' %}"/>
-                            <input type="submit" class="ui button green " value="{% trans "Mark as done" %}"
-                                   {% if minutes_since_start < 15 %}disabled{% endif %}/>
-                        </form>
-                    </td>
+        {% for reservation in reservations %}
+            {% if forloop.first %}
+                <table class="ui table make_my_reservation_desktop">
+                <thead>
+                <tr>
+                    <th>{% trans "Reservation" %}</th>
+                    <th>{% trans "Time" %}</th>
+                    <th>{% trans "User" %}</th>
+                    <th>{% trans "View in calendar" %}</th>
+                    <th>{% trans "Mark as done" %}</th>
                 </tr>
-            {% endfor %}
+                </thead>
+                <tbody>
+            {% endif %}
+        <tr class="make_my_reservation_desktop">
+            <td>
+                <div class="ui small header make_collapsed_header">{{ reservation.machine.name }}</div>
+                <div>{{ reservation.machine.machine_model }}</div>
+            </td>
+            <td>
+                {% if reservation.start_time.date == reservation.end_time.date %}
+                    <div>{{ reservation.start_time|date:"d/m/y" }}</div>
+                    <div>{{ reservation.start_time|date:"H:i" }}
+                        - {{ reservation.end_time|date:"H:i" }}</div>
+                {% else %}
+                    <div>{{ reservation.start_time|date:"d/m/Y - H:i" }}</div>
+                    <div>{{ reservation.end_time|date:"d/m/Y - H:i" }}</div>
+                {% endif %}
+            </td>
+            <td>
+                {% if reservation.special %}
+                    <b>MAKE NTNU: {{ reservation.special_text }}</b>
+                {% else %}
+                    <b>{{ reservation.user.get_full_name }}</b>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% calendar_url_reservation reservation %}">
+                    <div class="ui button primary">
+                        {% trans "Calendar" %}
+                    </div>
+                </a>
+            </td>
+            <td>
+                {% minutes_ago reservation.start_time as minutes_since_start %}
+                <form method="post" action="{% url 'mark_reservation_done' %}">
+                    {% csrf_token %}
+                    <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
+                    <input type="text" name="next" class="make_hidden"
+                           value="{% url 'current_reservations' %}"/>
+                    <input type="submit" class="ui button green " value="{% trans "Mark as done" %}"
+                           {% if minutes_since_start < 15 %}disabled{% endif %}/>
+                </form>
+            </td>
+        </tr>
+        {% if forloop.last %}
             </tbody>
-        </table>
+            </table>
+        {% endif %}
+        {% empty %}
+            <div class="text-centered">
+                <i>{% trans "There are currently no machines reserved" %}</i>
+            </div>
+        {% endfor %}
+
         <div class="ui cards make_my_reservation_cards_padding make_my_reservation_tablet">
             {% for reservation in reservations %}
                 <div class="card">
@@ -87,7 +100,11 @@
 
                         <div>
                             <br>
-                            <b>{{ reservation.user.get_full_name }}</b>
+                            {% if reservation.special %}
+                                <b>MAKE NTNU: {{ reservation.special_text }}</b>
+                            {% else %}
+                                <b>{{ reservation.user.get_full_name }}</b>
+                            {% endif %}
                         </div>
                     </div>
 
