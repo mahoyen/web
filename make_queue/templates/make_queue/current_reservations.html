@@ -120,6 +120,8 @@
                             <form method="post" action="{% url 'mark_reservation_done' %}">
                                 {% csrf_token %}
                                 <input type="number" name="pk" class="make_hidden" value="{{ reservation.pk }}"/>
+                                <input type="text" name="next" class="make_hidden"
+                                       value="{% url 'current_reservations' %}"/>
                             </form>
                         </div>
 
