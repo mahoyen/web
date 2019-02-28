@@ -156,10 +156,10 @@ class SuggestSkillView(PermissionRequiredMixin, TemplateView):
                     s.image = image
                 s.save()
             else:
-                # does not work for some reason
                 sug = SuggestSkill.objects.create(creator=profile, title=suggestion, title_en=suggestion_english,
                                                   image=image)
                 sug.voters.add(profile)
+                sug.save()
 
             if SuggestSkill.objects.get(title=suggestion).voters.count() >= 5:
                 Skill.objects.create(title=suggestion, image=image)
