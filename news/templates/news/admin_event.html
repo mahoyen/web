@@ -2,6 +2,7 @@
 {% load i18n %}
 {% load news_tags %}
 {% load staticfiles %}
+{% load query_set_tags %}
 
 {% block head %}
     <link rel="stylesheet" href="{% static "news/css/admin-event.css" %}">
@@ -99,7 +100,7 @@
         </div>
         <div class="ui bottom attached tab segment" data-tab="past">
             <div class="ui relaxed divided list">
-                {% for timeplace in object.timeplace_set|past %}
+                {% for timeplace in object.timeplace_set|past|order_by:"-start_date" %}
                     {% include "news/admin_timeplace_listing.html" %}
                 {% empty %}
                     {% trans "No past occurrences exist for this event" %}
