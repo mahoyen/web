@@ -29,9 +29,9 @@
             {% endif %}
         </h1>
 
-        <a href="{% url "admin-events" %}">
-            <i class="ui angle double left icon"></i>{% trans "Admin page for events" %}
-        </a>
+        <div>
+            <a href="{% url "admin-events" %}">{% trans "Events" %}</a> > {% trans "Event" %}
+        </div>
 
         <div class="ui info {% if not object.hidden %}hidden{% endif %} message" id="message-hidden">
             <div class="header">
