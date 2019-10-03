@@ -19,6 +19,21 @@
             {% for event in events %}
                 <div class="ui card">
                     <div class="image">
+                        {% if event.featured %}
+                            <div class="ui green ribbon label">
+                                {% trans "Featured" %}
+                            </div>
+                        {% endif %}
+                        {% if event.hidden %}
+                            <div class="ui red left ribbon label">
+                                {% trans "Hidden" %}
+                            </div>
+                        {% endif %}
+                        {% if event.private %}
+                            <div class="ui yellow left ribbon label">
+                                {% trans "Internal" %}
+                            </div>
+                        {% endif %}
                         <img src="{{ event.image.url }}">
                     </div>
                     <div class="content">
@@ -30,27 +45,6 @@
                         </div>
                         <div class="description">{{ event.clickbait }}</div>
                     </div>
-                    {% if event.featured or event.hidden or event.private %}
-                        <div class="extra content">
-                            {% if event.featured %}
-                                <div class="ui green tiny label">
-                                    {% trans "Featured" %}
-                                </div>
-                            {% endif %}
-
-                            {% if event.hidden %}
-                                <div class="ui red tiny label">
-                                    {% trans "Hidden" %}
-                                </div>
-                            {% endif %}
-
-                            {% if event.private %}
-                                <div class="ui yellow tiny label">
-                                    {% trans "Internal" %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
                     <div class="ui two bottom attached buttons">
                         <a class="ui yellow button" href="{% url "admin-event" event.id %}">
                             {% trans "Admin" %}

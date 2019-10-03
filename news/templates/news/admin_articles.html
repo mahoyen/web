@@ -20,33 +20,27 @@
             {% for article in articles %}
                 <div class="ui card">
                     <div class="image">
+                        {% if article.featured %}
+                            <div class="ui green ribbon label">
+                                {% trans "Featured" %}
+                            </div>
+                        {% endif %}
+                        {% if article.hidden %}
+                            <div class="ui red ribbon label">
+                                {% trans "Hidden" %}
+                            </div>
+                        {% endif %}
+                        {% if article.private %}
+                            <div class="ui yellow ribbon label">
+                                {% trans "Internal" %}
+                            </div>
+                        {% endif %}
                         <img src="{{ article.image.url }}">
                     </div>
                     <div class="content">
                         <div class="header">{{ article.title }}</div>
                         <div class="description">{{ article.clickbait }}</div>
                     </div>
-                    {% if article.featured or article.hidden or article.private %}
-                        <div class="extra content">
-                            {% if article.featured %}
-                                <div class="ui green tiny label">
-                                    {% trans "Featured" %}
-                                </div>
-                            {% endif %}
-
-                            {% if article.hidden %}
-                                <div class="ui red tiny label">
-                                    {% trans "Hidden" %}
-                                </div>
-                            {% endif %}
-
-                            {% if article.private %}
-                                <div class="ui yellow tiny label">
-                                    {% trans "Internal" %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
                     <div class="ui three bottom attached buttons">
                         <a class="ui blue button" href="{% url "article" article.id %}">
                             {% trans "View" %}
