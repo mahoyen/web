@@ -3,7 +3,7 @@ from datetime import date, time
 
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -16,6 +16,15 @@ class ArticleManager(models.Manager):
         return self.filter(hidden=False).filter(
             Q(pub_date=timezone.now().date(), pub_time__lt=timezone.now().time()) |
             Q(pub_date__lt=timezone.now().date()))
+
+
+class EventManager(models.Manager):
+    def ordered_by_latest_occurrence(self):
+        """
+        Orders the given set of events from the one with the latest occurrence (date) to the one with the oldest
+        occurrence. Any events with no occurrences will be ordered last.
+        """
+        return self.annotate(last_occurrence=Max("timeplace__start_date")).order_by("-last_occurrence")
 
 
 class TimePlaceManager(models.Manager):
@@ -95,6 +104,7 @@ class Article(NewsBase):
 
 
 class Event(NewsBase):
+    objects = EventManager()
     event_type = models.CharField(
         choices=(("R", _("Repeating")), ("S", _("Standalone"))),
         max_length=1,

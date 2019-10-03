@@ -4,6 +4,7 @@ from datetime import timedelta
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.db.models import Max
 from django.http import HttpResponseRedirect, JsonResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -130,7 +131,7 @@ class AdminEventsView(TemplateView):
             raise Http404()
         context = super().get_context_data(**kwargs)
         context.update({
-            'events': Event.objects.all(),
+            'events': Event.objects.ordered_by_latest_occurrence(),
         })
         return context
 
