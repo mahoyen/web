@@ -70,6 +70,16 @@
                             </div>
                         {% endif %}
                     {% endif %}
+
+                    {# Show the number of tickets reserved per occurrence if the user is an admin and the users need tickets #}
+                    {% if event.event.repeating and event.number_of_tickets and perms.news.view_eventticket %}
+                        <div class="extra content">
+                            <i class="ui ticket alternate icon"></i>
+                            <a href="{% url "timeplace-tickets" pk=event.pk %}">
+                                {{ event.number_of_registered_tickets }} / {{ event.number_of_tickets }} {% trans "tickets reserved" %}
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             {% endfor %}
             {% if article.standalone and article.timeplace_set.future %}
@@ -150,6 +160,16 @@
                                 {{ event.place }}
                             </p>
                         {% endif %}
+                    {% endif %}
+
+                    {# Show the number of tickets reserved per occurrence if the user is an admin and the users need tickets #}
+                    {% if event.event.repeating and event.number_of_tickets and perms.news.view_eventticket %}
+                        <p>
+                            <i class="ui ticket yellow alternate icon"></i>
+                            <a href="{% url "timeplace-tickets" pk=event.pk %}">
+                                {{ event.number_of_registered_tickets }} / {{ event.number_of_tickets }} {% trans "tickets reserved" %}
+                            </a>
+                        </p>
                     {% endif %}
 
                     <div class="attend">
